@@ -13,6 +13,8 @@ import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkMaxConfig;
 
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
+import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -68,6 +70,10 @@ public class CANDriveSubsystem extends SubsystemBase {
     // so that postive values drive both sides forward
     config.inverted(true);
     leftLeader.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+
+    // setup dashboard 
+    ShuffleboardTab tab = Shuffleboard.getTab("Drive Subsystem");
+    tab.add("button", "some text");
   }
 
   @Override
