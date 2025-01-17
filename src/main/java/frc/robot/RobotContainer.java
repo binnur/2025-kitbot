@@ -43,14 +43,9 @@ public class RobotContainer {
    * The container for the robot. Contains subsystems, OI devices, and commands.
    */
   public RobotContainer() {
-    configureBindings();
-
-    // Set the options to show up in the Dashboard for selecting auto modes. If you
-    // add additional auto modes you can add additional lines here with
-    // autoChooser.addOption
-    autoChooser.setDefaultOption("Auto Drive", Autos.exampleAuto(driveSubsystem));
-    autoChooser.addOption("Auto Drive and Roll", Autos.exampleAutoDriveAndRoll(driveSubsystem, rollerSubsystem));
-  }
+    configureBindings();      // add trigger-> command mappings 
+    configureAutoChooser();   // add autonomous options
+   }
 
   /**
    * Use this method to define your trigger->command mappings. Triggers can be
@@ -88,6 +83,14 @@ public class RobotContainer {
             rollerSubsystem,
             () -> operatorController.getRightTriggerAxis(),
             () -> operatorController.getLeftTriggerAxis()));
+  }
+
+  private void configureAutoChooser() {
+    // Set the options to show up in the Dashboard for selecting auto modes. If you
+    // add additional auto modes you can add additional lines here with
+    // autoChooser.addOption
+    autoChooser.setDefaultOption("Do Nothing", Autos.doNothing());
+    autoChooser.addOption("Auto Drive", Autos.exampleAuto(driveSubsystem));
   }
 
   /**
