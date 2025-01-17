@@ -10,7 +10,7 @@ import frc.robot.subsystems.CANRollerSubsystem;
 import frc.robot.Constants.RollerConstants;
 
 public final class Autos {
-  // Do Nothing for default option
+  // Do Nothing
   public static final Command doNothing() {
     return null;
   }

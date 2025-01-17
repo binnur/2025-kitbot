@@ -8,11 +8,14 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import edu.wpi.first.wpilibj2.command.Commands;
+
 import frc.robot.Constants.OperatorConstants;
 import frc.robot.Constants.RollerConstants;
 import frc.robot.commands.Autos;
 import frc.robot.subsystems.CANDriveSubsystem;
 import frc.robot.subsystems.CANRollerSubsystem;
+
 
 /**
  * This class is where the bulk of the robot should be declared. Since
@@ -39,12 +42,16 @@ public class RobotContainer {
   // The autonomous chooser
   private final SendableChooser<Command> autoChooser = new SendableChooser<>();
 
+  // Handle for Shuffleboard Dashboard
+  private ShuffleboardConfig sbDashboard;
+
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
    */
   public RobotContainer() {
     configureBindings();      // add trigger-> command mappings 
     configureAutoChooser();   // add autonomous options
+    configureShuffleboard();   // setup dashboard w/ autonomous selector
    }
 
   /**
@@ -78,19 +85,25 @@ public class RobotContainer {
 
     // Set the default command for the roller subsystem to the command from the
     // factory with the values provided by the triggers on the operator controller
-    rollerSubsystem.setDefaultCommand(
-        rollerSubsystem.runRoller(
-            rollerSubsystem,
-            () -> operatorController.getRightTriggerAxis(),
-            () -> operatorController.getLeftTriggerAxis()));
+  //   rollerSubsystem.setDefaultCommand(
+  //       rollerSubsystem.runRoller(
+  //           rollerSubsystem,
+  //           () -> operatorController.getRightTriggerAxis(),
+  //           () -> operatorController.getLeftTriggerAxis()));
+      rollerSubsystem.setDefaultCommand(rollerSubsystem.runRollerStop());
   }
 
   private void configureAutoChooser() {
     // Set the options to show up in the Dashboard for selecting auto modes. If you
     // add additional auto modes you can add additional lines here with
     // autoChooser.addOption
-    autoChooser.setDefaultOption("Do Nothing", Autos.doNothing());
+    autoChooser.setDefaultOption("Do Nothing", Commands.none());
     autoChooser.addOption("Auto Drive", Autos.exampleAuto(driveSubsystem));
+  }
+
+  private void configureShuffleboard() {
+    sbDashboard = ShuffleboardConfig.getInstance();
+    sbDashboard.addAutoChooser(autoChooser);     // setup auto option selection
   }
 
   /**
@@ -101,5 +114,10 @@ public class RobotContainer {
   public Command getAutonomousCommand() {
     // An example command will be run in autonomous
     return autoChooser.getSelected();
+  }
+
+  public void updateDashboards() {
+    // for every subsystem, call their periodic
+    rollerSubsystem.periodic();
   }
 }
