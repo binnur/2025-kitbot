@@ -7,7 +7,6 @@ package frc.robot.subsystems;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.Constants.RollerConstants;
 import java.util.function.DoubleSupplier;
 
 import com.revrobotics.spark.SparkMax;
@@ -16,14 +15,16 @@ import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.SparkMaxConfig;
 
+import frc.robot.Configs;
+import frc.robot.Constants.RollerConstants;
+
 /** Class to run the rollers over CAN */
 public class CANRollerSubsystem extends SubsystemBase {
-  private final SparkMax rollerMotor;
+  // Initialize roller SPARK
+  private final SparkMax rollerMotor = 
+    new SparkMax(RollerConstants.ROLLER_MOTOR_ID, MotorType.kBrushed);
 
   public CANRollerSubsystem() {
-    // Set up the roller motor as a brushed motor
-    rollerMotor = new SparkMax(RollerConstants.ROLLER_MOTOR_ID, MotorType.kBrushed);
-
     // Set can timeout. Because this project only sets parameters once on
     // construction, the timeout can be long without blocking robot operation. Code
     // which sets or gets parameters during operation may need a shorter timeout.
@@ -33,10 +34,17 @@ public class CANRollerSubsystem extends SubsystemBase {
     // the roller behave the same as the battery
     // voltage dips. The current limit helps prevent breaker trips or burning out
     // the motor in the event the roller stalls.
-    SparkMaxConfig rollerConfig = new SparkMaxConfig();
-    rollerConfig.voltageCompensation(RollerConstants.ROLLER_MOTOR_VOLTAGE_COMP);
-    rollerConfig.smartCurrentLimit(RollerConstants.ROLLER_MOTOR_CURRENT_LIMIT);
-    rollerMotor.configure(rollerConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+    // SparkMaxConfig rollerConfig = new SparkMaxConfig();
+    // rollerConfig.voltageCompensation(RollerConstants.ROLLER_MOTOR_VOLTAGE_COMP);
+    // rollerConfig.smartCurrentLimit(RollerConstants.ROLLER_MOTOR_CURRENT_LIMIT);
+
+
+    // rollerMotor.configure(rollerConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+
+    rollerMotor.configure(
+      Configs.CANRollerSubsystem.rollerConfig,
+      ResetMode.kResetSafeParameters,
+      PersistMode.kPersistParameters);
   }
 
   @Override
@@ -49,5 +57,7 @@ public class CANRollerSubsystem extends SubsystemBase {
     return Commands.run(
         () -> rollerMotor.set(forward.getAsDouble() - reverse.getAsDouble()), rollerSubsystem);
   }
+
+
 
 }
