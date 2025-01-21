@@ -4,25 +4,28 @@
 
 package frc.robot.subsystems;
 
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import java.util.function.DoubleSupplier;
 
-import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
-import com.revrobotics.spark.config.SparkMaxConfig;
 
 import frc.robot.Configs;
 import frc.robot.Constants.RollerConstants;
 
+
 /** Class to run the rollers over CAN */
 public class CANRollerSubsystem extends SubsystemBase {
   // Initialize roller SPARK
-  private final SparkMax rollerMotor = 
-    new SparkMax(RollerConstants.ROLLER_MOTOR_ID, MotorType.kBrushed);
+  private final SparkMaxSendable rollerMotor = 
+    new SparkMaxSendable(RollerConstants.ROLLER_MOTOR_ID, MotorType.kBrushed);
+
+  // subsystem internals
+  double speed = 0.0;
 
   public CANRollerSubsystem() {
     // Set can timeout. Because this project only sets parameters once on
@@ -30,21 +33,20 @@ public class CANRollerSubsystem extends SubsystemBase {
     // which sets or gets parameters during operation may need a shorter timeout.
     rollerMotor.setCANTimeout(250);
 
-    // Create and apply configuration for roller motor. Voltage compensation helps
-    // the roller behave the same as the battery
-    // voltage dips. The current limit helps prevent breaker trips or burning out
-    // the motor in the event the roller stalls.
-    // SparkMaxConfig rollerConfig = new SparkMaxConfig();
-    // rollerConfig.voltageCompensation(RollerConstants.ROLLER_MOTOR_VOLTAGE_COMP);
-    // rollerConfig.smartCurrentLimit(RollerConstants.ROLLER_MOTOR_CURRENT_LIMIT);
-
-
-    // rollerMotor.configure(rollerConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
-
     rollerMotor.configure(
       Configs.CANRollerSubsystem.rollerConfig,
       ResetMode.kResetSafeParameters,
       PersistMode.kPersistParameters);
+
+    // Add Live Window -- used in Test mode
+    addChild("rollerMotor", rollerMotor);
+
+    // Add subsystem components for dashboard
+    configDashboardKeys();
+  }
+
+  private void configDashboardKeys() {
+    SmartDashboard.putData("Roller/rollerMotor", rollerMotor);
   }
 
   @Override

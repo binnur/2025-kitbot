@@ -12,7 +12,9 @@ public final class Configs {
         public static final SparkMaxConfig rollerConfig = new SparkMaxConfig();
 
         static {
-            // Configure basic settings for roller motor
+            // Apply configuration for roller motor. Voltage compensation helps
+            // the roller behave the same as the battery voltage dips. The current limit helps 
+            // prevent breaker trips or burning out the motor in the event the roller stalls.
             rollerConfig
                 .idleMode(IdleMode.kBrake)
                 .voltageCompensation(RollerConstants.ROLLER_MOTOR_VOLTAGE_COMP)
