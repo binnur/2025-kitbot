@@ -20,12 +20,20 @@ import frc.robot.Constants.RollerConstants;
 
 /** Class to run the rollers over CAN */
 public class CANRollerSubsystem extends SubsystemBase {
+  // state of the roller motor
+  public static enum RollerState {
+    STOPPED,
+    FORWARD,
+    REVERSE
+  };
+
   // Initialize roller SPARK
   private final SparkMaxSendable rollerMotor = 
     new SparkMaxSendable(RollerConstants.ROLLER_MOTOR_ID, MotorType.kBrushed);
 
   // subsystem internals
-  double speed = 0.0;
+  private double speed = 0.5;
+  private RollerState rollerState = RollerState.STOPPED;
 
   public CANRollerSubsystem() {
     // Set can timeout. Because this project only sets parameters once on
@@ -39,18 +47,45 @@ public class CANRollerSubsystem extends SubsystemBase {
       PersistMode.kPersistParameters);
 
     // Add Live Window -- used in Test mode
-    addChild("rollerMotor", rollerMotor);
+    addChild("Roller/rollerMotor", rollerMotor);
 
     // Add subsystem components for dashboard
-    configDashboardKeys();
+    configDashboardEntries();
   }
 
-  private void configDashboardKeys() {
+  private void configDashboardEntries() {
     SmartDashboard.putData("Roller/rollerMotor", rollerMotor);
+    SmartDashboard.putData(runRollerForward());
+    SmartDashboard.putData(runRollerReverse());
+    SmartDashboard.putData(runRollerStop());
+    SmartDashboard.putString("Roller/rollerState", rollerState.name());
+    SmartDashboard.putNumber("Roller/speed", speed);
+  }
+
+  private void updateDashboardEntries() {
+    //SmartDashboard.putData("Roller/rollerMotor", rollerMotor);
+    SmartDashboard.putString("Roller/rollerState", rollerState.name());
+    SmartDashboard.putNumber("Roller/speed", speed);
+  }
+
+  private void runRollerMotorForward() {
+    rollerState = RollerState.FORWARD;
+    rollerMotor.set(Math.abs(speed));
+  }
+
+  private void runRollerMotorReverse() {
+    rollerState = RollerState.REVERSE;
+    rollerMotor.set(-Math.abs(speed));
+  }
+
+  private void stopRollerMotor() {
+    rollerState = RollerState.STOPPED;
+    rollerMotor.set(0.0);
   }
 
   @Override
   public void periodic() {
+    updateDashboardEntries();
   }
 
   // Command to run the roller with joystick inputs
@@ -60,6 +95,19 @@ public class CANRollerSubsystem extends SubsystemBase {
         () -> rollerMotor.set(forward.getAsDouble() - reverse.getAsDouble()), rollerSubsystem);
   }
 
+  public Command runRollerForward() {
+    return this.startEnd(this::runRollerMotorForward, this::stopRollerMotor)
+                .withName("Roller/CMD/runRollerForward");
+  }
 
+  public Command runRollerReverse() {
+    return this.startEnd(this::runRollerMotorReverse, this::stopRollerMotor)
+                .withName("Roller/CMD/runRollerReverse");
+  }
+
+  public Command runRollerStop() {
+    return this.runOnce(this::stopRollerMotor)
+                .withName("Roller/CMD/runRollerStop");
+  }
 
 }
