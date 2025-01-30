@@ -11,29 +11,29 @@ import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkMaxConfig;
+import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
-import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
-import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.DriveConstants;
 
 public class CANDriveSubsystem extends SubsystemBase {
-  private final SparkMax leftLeader;
-  private final SparkMax leftFollower;
-  private final SparkMax rightLeader;
-  private final SparkMax rightFollower;
+  private final SparkMaxSendable leftLeader;
+  private final SparkMaxSendable leftFollower;
+  private final SparkMaxSendable rightLeader;
+  private final SparkMaxSendable rightFollower;
 
   private final DifferentialDrive drive;
 
   public CANDriveSubsystem() {
     // create brushed motors for drive
-    leftLeader = new SparkMax(DriveConstants.LEFT_LEADER_ID, MotorType.kBrushed);
-    leftFollower = new SparkMax(DriveConstants.LEFT_FOLLOWER_ID, MotorType.kBrushed);
-    rightLeader = new SparkMax(DriveConstants.RIGHT_LEADER_ID, MotorType.kBrushed);
-    rightFollower = new SparkMax(DriveConstants.RIGHT_FOLLOWER_ID, MotorType.kBrushed);
+    leftLeader = new SparkMaxSendable(DriveConstants.LEFT_LEADER_ID, MotorType.kBrushed);
+    leftFollower = new SparkMaxSendable(DriveConstants.LEFT_FOLLOWER_ID, MotorType.kBrushed);
+    rightLeader = new SparkMaxSendable(DriveConstants.RIGHT_LEADER_ID, MotorType.kBrushed);
+    rightFollower = new SparkMaxSendable(DriveConstants.RIGHT_FOLLOWER_ID, MotorType.kBrushed);
 
     // set up differential drive class
     drive = new DifferentialDrive(leftLeader, rightLeader);
@@ -46,34 +46,60 @@ public class CANDriveSubsystem extends SubsystemBase {
     leftFollower.setCANTimeout(250);
     rightFollower.setCANTimeout(250);
 
-    // Create the configuration to apply to motors. Voltage compensation
+    // Configuration setup for motors
+    SparkMaxConfig globalConfig = new SparkMaxConfig();
+    SparkMaxConfig leftLeaderConfig = new SparkMaxConfig();
+    SparkMaxConfig rightLeaderConfig = new SparkMaxConfig();
+    SparkMaxConfig leftFollowerConfig = new SparkMaxConfig();
+    SparkMaxConfig rightFollowerConfig = new SparkMaxConfig();
+
+    // Create the globalConfiguration to apply to motors. Voltage compensation
     // helps the robot perform more similarly on different
     // battery voltages (at the cost of a little bit of top speed on a fully charged
-    // battery). The current limit helps prevent tripping
-    // breakers.
-    SparkMaxConfig config = new SparkMaxConfig();
-    config.voltageCompensation(12);
-    config.smartCurrentLimit(DriveConstants.DRIVE_MOTOR_CURRENT_LIMIT);
+    // battery). The current limit helps prevent tripping breakers.
+    globalConfig
+        .voltageCompensation(DriveConstants.DRIVE_MOTOR_NOMINAL_VOLTAGE)
+        .smartCurrentLimit(DriveConstants.DRIVE_MOTOR_CURRENT_LIMIT)
+        .idleMode(IdleMode.kBrake);
 
-    // Set configuration to follow leader and then apply it to corresponding
-    // follower. Resetting in case a new controller is swapped
-    // in and persisting in case of a controller reset due to breaker trip
-    config.follow(leftLeader);
-    leftFollower.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
-    config.follow(rightLeader);
-    rightFollower.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+    // Apply global configurations & follower mode
+    // Resetting in case a new controller is swapped in and persisting in case of a controller 
+    // reset due to breaker trip
+    globalConfig.disableFollowerMode();
+    
+    leftLeaderConfig.apply(globalConfig);
+    rightLeaderConfig.apply(globalConfig);
+    leftFollowerConfig.apply(globalConfig)
+        .follow(leftLeader);
+    rightFollowerConfig.apply(globalConfig)
+        .follow(rightLeader);
 
-    // Remove following, then apply config to right leader
-    config.disableFollowerMode();
-    rightLeader.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
-    // Set conifg to inverted and then apply to left leader. Set Left side inverted
-    // so that postive values drive both sides forward
-    config.inverted(true);
-    leftLeader.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+    /*
+     * Apply the configuration to the SPARKs.
+     *
+     * kResetSafeParameters is used to get the SPARK MAX to a known state. This
+     * is useful in case the SPARK MAX is replaced.
+     *
+     * kPersistParameters is used to ensure the configuration is not lost when
+     * the SPARK MAX loses power. This is useful for power cycles that may occur
+     * mid-operation.
+     */
+    leftLeader.configure(globalConfig,ResetMode.kResetSafeParameters,   PersistMode.kPersistParameters);
+    rightLeader.configure(globalConfig,ResetMode.kResetSafeParameters,   PersistMode.kPersistParameters);
+    leftFollower.configure(globalConfig,ResetMode.kResetSafeParameters,   PersistMode.kPersistParameters);
+    rightFollower.configure(globalConfig,ResetMode.kResetSafeParameters,   PersistMode.kPersistParameters);
 
-    // setup dashboard 
-    ShuffleboardTab tab = Shuffleboard.getTab("Drive Subsystem");
-    tab.add("button", "some text");
+    // Add Live Window -- used in Test mode
+    addChild("Drive/leftLeader", leftLeader);
+    addChild("Drive/rightLeader", rightLeader);
+
+    // Add subsystem components for dashboard
+    configDashboardEntries();
+  }
+
+  private void configDashboardEntries() {
+    SmartDashboard.putData("Drive/leftLeader", leftLeader);
+    SmartDashboard.putData("Drive/rightLeader", rightLeader);
   }
 
   @Override
