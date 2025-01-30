@@ -22,10 +22,10 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.MotorConfigs.CANDriveSubsystemConfigs;
+import frc.robot.MotorConfigs.DriveSubsystemConfigs;
 import frc.robot.Constants.DriveConstants;
 
-public class CANDriveSubsystem extends SubsystemBase {
+public class DriveSubsystem extends SubsystemBase {
   // add motors
   private final SparkMaxSendable leftLeader;
   private final SparkMaxSendable leftFollower;
@@ -40,7 +40,7 @@ public class CANDriveSubsystem extends SubsystemBase {
 
   private final DifferentialDrive drive;
 
-  public CANDriveSubsystem() {
+  public DriveSubsystem() {
     // create brushed motors for drive
     leftLeader = new SparkMaxSendable(DriveConstants.LEFT_LEADER_ID, MotorType.kBrushed);
     leftFollower = new SparkMaxSendable(DriveConstants.LEFT_FOLLOWER_ID, MotorType.kBrushed);
@@ -59,10 +59,10 @@ public class CANDriveSubsystem extends SubsystemBase {
     // Set can timeout. Because this project only sets parameters once on
     // construction, the timeout can be long without blocking robot operation. Code
     // which sets or gets parameters during operation may need a shorter timeout.
-    leftLeader.setCANTimeout(CANDriveSubsystemConfigs.kDriveCANTimeout);
-    rightLeader.setCANTimeout(CANDriveSubsystemConfigs.kDriveCANTimeout);
-    leftFollower.setCANTimeout(CANDriveSubsystemConfigs.kDriveCANTimeout);
-    rightFollower.setCANTimeout(CANDriveSubsystemConfigs.kDriveCANTimeout);
+    leftLeader.setCANTimeout(DriveSubsystemConfigs.kDriveCANTimeout);
+    rightLeader.setCANTimeout(DriveSubsystemConfigs.kDriveCANTimeout);
+    leftFollower.setCANTimeout(DriveSubsystemConfigs.kDriveCANTimeout);
+    rightFollower.setCANTimeout(DriveSubsystemConfigs.kDriveCANTimeout);
 
     // Configuration setup for motors
     SparkMaxConfig globalConfig = new SparkMaxConfig();
@@ -76,8 +76,8 @@ public class CANDriveSubsystem extends SubsystemBase {
     // battery voltages (at the cost of a little bit of top speed on a fully charged
     // battery). The current limit helps prevent tripping breakers.
     globalConfig
-        .voltageCompensation(CANDriveSubsystemConfigs.kDriveMotorNominalVoltage)
-        .smartCurrentLimit(CANDriveSubsystemConfigs.kDriveMotorCurrentLimit)
+        .voltageCompensation(DriveSubsystemConfigs.kDriveMotorNominalVoltage)
+        .smartCurrentLimit(DriveSubsystemConfigs.kDriveMotorCurrentLimit)
         .idleMode(IdleMode.kBrake);
 
     // Apply global configurations & follower mode
@@ -94,11 +94,11 @@ public class CANDriveSubsystem extends SubsystemBase {
 
     // add enconders
     leftLeaderConfig.encoder
-        .positionConversionFactor(CANDriveSubsystemConfigs.kDrivePositionConversionFactor)
-        .velocityConversionFactor(CANDriveSubsystemConfigs.kDriveVelocityConversionFactor);
+        .positionConversionFactor(DriveSubsystemConfigs.kDrivePositionConversionFactor)
+        .velocityConversionFactor(DriveSubsystemConfigs.kDriveVelocityConversionFactor);
     rightLeaderConfig.encoder
-        .positionConversionFactor(CANDriveSubsystemConfigs.kDrivePositionConversionFactor)
-        .velocityConversionFactor(CANDriveSubsystemConfigs.kDriveVelocityConversionFactor);
+        .positionConversionFactor(DriveSubsystemConfigs.kDrivePositionConversionFactor)
+        .velocityConversionFactor(DriveSubsystemConfigs.kDriveVelocityConversionFactor);
 
     // configure closed loop controller
     leftLeaderConfig.closedLoop
@@ -180,7 +180,7 @@ public class CANDriveSubsystem extends SubsystemBase {
 
   // Command to drive the robot with joystick inputs
   public Command driveArcade(
-      CANDriveSubsystem driveSubsystem, DoubleSupplier xSpeed, DoubleSupplier zRotation) {
+      DriveSubsystem driveSubsystem, DoubleSupplier xSpeed, DoubleSupplier zRotation) {
     return Commands.run(
         () -> drive.arcadeDrive(xSpeed.getAsDouble(), zRotation.getAsDouble()), driveSubsystem);
   }

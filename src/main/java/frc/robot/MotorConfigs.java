@@ -9,7 +9,7 @@ import frc.robot.Constants.RollerConstants;
 public final class MotorConfigs {
 
     // Configure drive subsystem
-    public static final class CANDriveSubsystemConfigs {
+    public static final class DriveSubsystemConfigs {
         // motor config settings
         public static final double kDriveMotorNominalVoltage = 12.0;
         public static final int kDriveMotorCurrentLimit = 60;
@@ -26,7 +26,7 @@ public final class MotorConfigs {
     }
 
     // Configure roller subsystem
-    public static final class CANRollerSubsystem {
+    public static final class RollerSubsystem {
         public static final SparkMaxConfig rollerConfig = new SparkMaxConfig();
 
         static {
