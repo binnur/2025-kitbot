@@ -23,8 +23,10 @@ public final class Constants {
     public static final int RIGHT_LEADER_ID = 3;
     public static final int RIGHT_FOLLOWER_ID = 4;
 
-    public static final double DRIVE_MOTOR_NOMINAL_VOLTAGE = 12.0;
-    public static final int DRIVE_MOTOR_CURRENT_LIMIT = 60;
+    // chassis configuration
+    public static final double kWheelDiameterInches = 6.0;
+    public static final double kWheelCircumferenceInches = kWheelDiameterInches * Math.PI;
+
   }
 
   public static final class RollerConstants {

@@ -14,7 +14,7 @@ import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 
-import frc.robot.Configs;
+import frc.robot.MotorConfigs;
 import frc.robot.Constants.RollerConstants;
 
 
@@ -42,7 +42,7 @@ public class CANRollerSubsystem extends SubsystemBase {
     rollerMotor.setCANTimeout(250);
 
     rollerMotor.configure(
-      Configs.CANRollerSubsystem.rollerConfig,
+      MotorConfigs.CANRollerSubsystem.rollerConfig,
       ResetMode.kResetSafeParameters,
       PersistMode.kPersistParameters);
 

@@ -4,6 +4,9 @@
 
 package frc.robot;
 
+import com.revrobotics.spark.ClosedLoopSlot;
+import com.revrobotics.spark.SparkBase.ControlType;
+
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -110,5 +113,13 @@ public class RobotContainer {
   public Command getAutonomousCommand() {
     // An example command will be run in autonomous
     return autoChooser.getSelected();
+  }
+
+  public void setDriveVelocity(double setVelocity) {
+    driveSubsystem.setClosedLoopControllerVelocity(setVelocity);  
+  }
+
+  public void setDrivePosition(double setPosition) {
+    driveSubsystem.setClosedLoopControllerPosition(setPosition);
   }
 }
