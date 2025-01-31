@@ -65,7 +65,7 @@ public class CANRollerSubsystem extends SubsystemBase {
   private void updateDashboardEntries() {
     //SmartDashboard.putData("Roller/rollerMotor", rollerMotor);
     SmartDashboard.putString("Roller/rollerState", rollerState.name());
-    SmartDashboard.putNumber("Roller/speed", speed);
+    SmartDashboard.putNumber("Roller/speed", rollerMotor.get());
   }
 
   private void runRollerMotorForward() {
