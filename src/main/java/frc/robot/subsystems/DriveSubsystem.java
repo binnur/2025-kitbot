@@ -7,8 +7,11 @@ package frc.robot.subsystems;
 import java.util.function.DoubleSupplier;
 
 import com.revrobotics.RelativeEncoder;
+import com.revrobotics.sim.SparkMaxSim;
+import com.revrobotics.sim.SparkRelativeEncoderSim;
 import com.revrobotics.spark.ClosedLoopSlot;
 import com.revrobotics.spark.SparkClosedLoopController;
+import com.revrobotics.spark.SparkRelativeEncoder;
 import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
@@ -17,12 +20,22 @@ import com.revrobotics.spark.config.SparkMaxConfig;
 import com.revrobotics.spark.config.ClosedLoopConfig.FeedbackSensor;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 
+import edu.wpi.first.hal.SimDouble;
+import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.math.util.Units;
+import edu.wpi.first.util.sendable.SendableRegistry;
+import edu.wpi.first.wpilibj.Encoder;
+import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim;
+import edu.wpi.first.wpilibj.simulation.EncoderSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.MotorConfigs.DriveSubsystemConfigs;
+import frc.robot.RobotContainer;
 import frc.robot.Constants.DriveConstants;
 
 public class DriveSubsystem extends SubsystemBase {
@@ -35,10 +48,24 @@ public class DriveSubsystem extends SubsystemBase {
   // setup closed loop controller
   private final SparkClosedLoopController leftClosedLoopController;
   private final SparkClosedLoopController rightClosedLoopController;
-  private final RelativeEncoder leftEncoder;
-  private final RelativeEncoder rightEncoder;
+  private final SparkRelativeEncoder leftEncoder;
+  private final SparkRelativeEncoder rightEncoder;
 
   private final DifferentialDrive drive;
+
+  // simulation support
+  // 1. create DC motor objects for motor type
+  //    note: simulate followers as one motor
+  // 2. create simulation spark max object
+  // 3. create encoder objects -- 
+  // 4. simulate drivetrain
+  private DCMotor leftDcMotor;
+  private DCMotor rightDcMotor;
+  private SparkMaxSim leftDcMotorSim;
+  private SparkMaxSim rightDcMotorSim;
+  private SparkRelativeEncoderSim leftEncoderSim;
+  private SparkRelativeEncoderSim rightEncoderSim;
+  public final DifferentialDrivetrainSim drivetrainSim;
 
   public DriveSubsystem() {
     // create brushed motors for drive
@@ -50,8 +77,8 @@ public class DriveSubsystem extends SubsystemBase {
     // setup closed loop controller
     leftClosedLoopController = leftLeader.getClosedLoopController();
     rightClosedLoopController = rightLeader.getClosedLoopController();
-    leftEncoder = leftLeader.getEncoder();
-    rightEncoder = rightLeader.getEncoder();
+    leftEncoder = (SparkRelativeEncoder) leftLeader.getEncoder();
+    rightEncoder = (SparkRelativeEncoder) rightLeader.getEncoder();
 
     // set up differential drive class
     drive = new DifferentialDrive(leftLeader, rightLeader);
@@ -93,12 +120,17 @@ public class DriveSubsystem extends SubsystemBase {
         .follow(rightLeader);
 
     // add enconders
+    // velocityConversionFactor returns rotations per min -- divide by 60.0 for rotation per seconds
     leftLeaderConfig.encoder
         .positionConversionFactor(DriveSubsystemConfigs.kDrivePositionConversionFactor)
-        .velocityConversionFactor(DriveSubsystemConfigs.kDriveVelocityConversionFactor);
+        .velocityConversionFactor(DriveSubsystemConfigs.kDriveVelocityConversionFactor / 60.0);
     rightLeaderConfig.encoder
         .positionConversionFactor(DriveSubsystemConfigs.kDrivePositionConversionFactor)
-        .velocityConversionFactor(DriveSubsystemConfigs.kDriveVelocityConversionFactor);
+        .velocityConversionFactor(DriveSubsystemConfigs.kDriveVelocityConversionFactor / 60.0);
+    // reset encoder positions
+    leftEncoder.setPosition(0.0);
+    rightEncoder.setPosition(0.0);
+    
 
     // configure closed loop controller
     leftLeaderConfig.closedLoop
@@ -131,6 +163,30 @@ public class DriveSubsystem extends SubsystemBase {
     leftFollower.configure(globalConfig,ResetMode.kResetSafeParameters,   PersistMode.kPersistParameters);
     rightFollower.configure(globalConfig,ResetMode.kResetSafeParameters,   PersistMode.kPersistParameters);
 
+    // construct simulation
+    leftDcMotor = DCMotor.getCIM(1);
+    rightDcMotor = DCMotor.getCIM(1);
+    leftDcMotorSim = new SparkMaxSim(leftLeader, leftDcMotor);
+    rightDcMotorSim = new SparkMaxSim(rightLeader, rightDcMotor);
+    leftEncoderSim = new SparkRelativeEncoderSim(leftLeader);     // is this setting up encoder correctly?
+    rightEncoderSim = new SparkRelativeEncoderSim(rightLeader); 
+  
+    drivetrainSim = new DifferentialDrivetrainSim(
+      DCMotor.getCIM(2),      // two CIM motors on each side of drivetrain
+      1,                                // no gear reduction
+      7.5,                              // FIXME: MOI of 7.5kg m^2 from CAD model 
+      60.0,                             // FIXME: mass of the robot
+      Units.inchesToMeters(3),   // Robot uses 3" radius wheels
+      0.7112,                           // Track width is 0.7112 meters
+      // The standard deviations for measurement noise:
+      // x and y: 0.001 m
+      // heading: 0.001 rad
+      // l and r velocity: 0.1 m/s
+      // l and r positions: 0.005 m
+      VecBuilder.fill(0.001, 0.001, 0.001, 01, 01, 0.005, 0.005) 
+    );
+
+    // Dashboard configurations
     // Add Live Window -- used in Test mode
     addChild("Drive/leftLeader", leftLeader);
     addChild("Drive/rightLeader", rightLeader);
@@ -165,6 +221,23 @@ public class DriveSubsystem extends SubsystemBase {
   @Override
   public void periodic() {
     updateDashboardEntries();
+  }
+
+  public void simulationPeriodic() {
+    // Update simulation for drive subsystem
+    // 1. set 'inputs' (voltages)
+    // 2. write simulated positions and velocities for simulated components
+    //    -- note: negates right side so positive voltages make right side move forward
+    drivetrainSim.setInputs(
+        leftLeader.get() * RobotController.getBatteryVoltage(),
+        rightLeader.get() * RobotController.getBatteryVoltage());
+    drivetrainSim.update(0.020);
+
+    leftEncoderSim.setPosition(drivetrainSim.getLeftPositionMeters());
+    leftEncoderSim.setVelocity(drivetrainSim.getLeftVelocityMetersPerSecond());
+    rightEncoderSim.setPosition(drivetrainSim.getRightPositionMeters());
+    rightEncoderSim.setVelocity(drivetrainSim.getRightVelocityMetersPerSecond());
+
   }
 
   // update control loop 
