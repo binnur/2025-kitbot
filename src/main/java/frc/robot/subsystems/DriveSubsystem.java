@@ -30,6 +30,7 @@ import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim;
 import edu.wpi.first.wpilibj.simulation.EncoderSim;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
@@ -52,6 +53,7 @@ public class DriveSubsystem extends SubsystemBase {
   private final SparkRelativeEncoder rightEncoder;
 
   private final DifferentialDrive drive;
+  private final Field2d field = new Field2d();
 
   // simulation support
   // 1. create DC motor objects for motor type
@@ -74,94 +76,44 @@ public class DriveSubsystem extends SubsystemBase {
     rightLeader = new SparkMaxSendable(DriveConstants.RIGHT_LEADER_ID, MotorType.kBrushed);
     rightFollower = new SparkMaxSendable(DriveConstants.RIGHT_FOLLOWER_ID, MotorType.kBrushed);
 
-    // setup closed loop controller
-    leftClosedLoopController = leftLeader.getClosedLoopController();
-    rightClosedLoopController = rightLeader.getClosedLoopController();
-    leftEncoder = (SparkRelativeEncoder) leftLeader.getEncoder();
-    rightEncoder = (SparkRelativeEncoder) rightLeader.getEncoder();
-
-    // set up differential drive class
-    drive = new DifferentialDrive(leftLeader, rightLeader);
-
     // Set can timeout. Because this project only sets parameters once on
     // construction, the timeout can be long without blocking robot operation. Code
     // which sets or gets parameters during operation may need a shorter timeout.
+    // TODO: how does this fit w/ config setup?
     leftLeader.setCANTimeout(DriveSubsystemConfigs.kDriveCANTimeout);
     rightLeader.setCANTimeout(DriveSubsystemConfigs.kDriveCANTimeout);
     leftFollower.setCANTimeout(DriveSubsystemConfigs.kDriveCANTimeout);
     rightFollower.setCANTimeout(DriveSubsystemConfigs.kDriveCANTimeout);
 
-    // Configuration setup for motors
-    SparkMaxConfig globalConfig = new SparkMaxConfig();
-    SparkMaxConfig leftLeaderConfig = new SparkMaxConfig();
-    SparkMaxConfig rightLeaderConfig = new SparkMaxConfig();
-    SparkMaxConfig leftFollowerConfig = new SparkMaxConfig();
-    SparkMaxConfig rightFollowerConfig = new SparkMaxConfig();
-
-    // Create the globalConfiguration to apply to motors. Voltage compensation
-    // helps the robot perform more similarly on different
-    // battery voltages (at the cost of a little bit of top speed on a fully charged
-    // battery). The current limit helps prevent tripping breakers.
-    globalConfig
-        .voltageCompensation(DriveSubsystemConfigs.kDriveMotorNominalVoltage)
-        .smartCurrentLimit(DriveSubsystemConfigs.kDriveMotorCurrentLimit)
-        .idleMode(IdleMode.kBrake);
-
     // Apply global configurations & follower mode
     // Resetting in case a new controller is swapped in and persisting in case of a controller 
     // reset due to breaker trip
-    globalConfig.disableFollowerMode();
-    
-    leftLeaderConfig.apply(globalConfig);
-    rightLeaderConfig.apply(globalConfig);
-    leftFollowerConfig.apply(globalConfig)
-        .follow(leftLeader);
-    rightFollowerConfig.apply(globalConfig)
-        .follow(rightLeader);
+    DriveSubsystemConfigs.globalConfig.disableFollowerMode();
 
-    // add enconders
-    // velocityConversionFactor returns rotations per min -- divide by 60.0 for rotation per seconds
-    leftLeaderConfig.encoder
-        .positionConversionFactor(DriveSubsystemConfigs.kDrivePositionConversionFactor)
-        .velocityConversionFactor(DriveSubsystemConfigs.kDriveVelocityConversionFactor / 60.0);
-    rightLeaderConfig.encoder
-        .positionConversionFactor(DriveSubsystemConfigs.kDrivePositionConversionFactor)
-        .velocityConversionFactor(DriveSubsystemConfigs.kDriveVelocityConversionFactor / 60.0);
+    // Apply configurations to the motors
+    // kResetSafeParameters puts SPARKMAX to a known state (if sparkmax is replaced)
+    // kPersistParameters ensure configuration is not lost when sparkmax looses power (ex. mid-operation power cycles)
+    leftLeader.configure(DriveSubsystemConfigs.globalConfig,ResetMode.kResetSafeParameters,   PersistMode.kPersistParameters);
+    rightLeader.configure(DriveSubsystemConfigs.globalConfig,ResetMode.kResetSafeParameters,   PersistMode.kPersistParameters);
+    leftFollower.configure(DriveSubsystemConfigs.globalConfig,ResetMode.kResetSafeParameters,   PersistMode.kPersistParameters);
+    rightFollower.configure(DriveSubsystemConfigs.globalConfig,ResetMode.kResetSafeParameters,   PersistMode.kPersistParameters);
+
+    // setup followers
+    DriveSubsystemConfigs.leftFollowerConfig.follow(leftLeader);
+    DriveSubsystemConfigs.rightFollowerConfig.follow(rightLeader);
+
+    // setup closed loop controller & encoder
+    leftClosedLoopController = leftLeader.getClosedLoopController();
+    rightClosedLoopController = rightLeader.getClosedLoopController();
+    leftEncoder = (SparkRelativeEncoder) leftLeader.getEncoder();
+    rightEncoder = (SparkRelativeEncoder) rightLeader.getEncoder();
+
     // reset encoder positions
     leftEncoder.setPosition(0.0);
     rightEncoder.setPosition(0.0);
-    
-
-    // configure closed loop controller
-    leftLeaderConfig.closedLoop
-        .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
-        // set PID values for position control. Closed loop slot defaults to slot 0
-        .p(0.1)
-        .i(0)
-        .d(0)
-        .outputRange(-1, 1)
-        // set PID values for velocity control to slot 1
-        .p(0.0001, ClosedLoopSlot.kSlot1)
-        .i(0, ClosedLoopSlot.kSlot1)
-        .d(0, ClosedLoopSlot.kSlot1)
-        // FIXME: magic numbers! 
-        .velocityFF(1.0 / 5767, ClosedLoopSlot.kSlot1)
-        .outputRange(-1, 1, ClosedLoopSlot.kSlot1);
-
-    /*
-     * Apply the configuration to the SPARKs.
-     *
-     * kResetSafeParameters is used to get the SPARK MAX to a known state. This
-     * is useful in case the SPARK MAX is replaced.
-     *
-     * kPersistParameters is used to ensure the configuration is not lost when
-     * the SPARK MAX loses power. This is useful for power cycles that may occur
-     * mid-operation.
-     */
-    leftLeader.configure(globalConfig,ResetMode.kResetSafeParameters,   PersistMode.kPersistParameters);
-    rightLeader.configure(globalConfig,ResetMode.kResetSafeParameters,   PersistMode.kPersistParameters);
-    leftFollower.configure(globalConfig,ResetMode.kResetSafeParameters,   PersistMode.kPersistParameters);
-    rightFollower.configure(globalConfig,ResetMode.kResetSafeParameters,   PersistMode.kPersistParameters);
+  
+     // set up differential drive class
+     drive = new DifferentialDrive(leftLeader, rightLeader);
 
     // construct simulation
     leftDcMotor = DCMotor.getCIM(1);
@@ -170,6 +122,8 @@ public class DriveSubsystem extends SubsystemBase {
     rightDcMotorSim = new SparkMaxSim(rightLeader, rightDcMotor);
     leftEncoderSim = new SparkRelativeEncoderSim(leftLeader);     // is this setting up encoder correctly?
     rightEncoderSim = new SparkRelativeEncoderSim(rightLeader); 
+    leftEncoderSim.setPosition(0.0);
+    rightEncoderSim.setPosition(0.0);
   
     drivetrainSim = new DifferentialDrivetrainSim(
       DCMotor.getCIM(2),      // two CIM motors on each side of drivetrain
@@ -202,6 +156,7 @@ public class DriveSubsystem extends SubsystemBase {
     SmartDashboard.setDefaultNumber("Drive/Target Velocity", 0);
     //SmartDashboard.setDefaultBoolean("Drive/Control Mode (false: Velocity)", false);  // Default Velocity
     SmartDashboard.setDefaultBoolean("Drive/Reset Encoder", false);
+    SmartDashboard.putData("Drive/Field", field);
   }
 
   private void updateDashboardEntries() {
@@ -229,8 +184,8 @@ public class DriveSubsystem extends SubsystemBase {
     // 2. write simulated positions and velocities for simulated components
     //    -- note: negates right side so positive voltages make right side move forward
     drivetrainSim.setInputs(
-        leftLeader.get() * RobotController.getBatteryVoltage(),
-        rightLeader.get() * RobotController.getBatteryVoltage());
+        leftLeader.get() * RobotController.getInputVoltage(),
+        rightLeader.get() * RobotController.getInputVoltage());
     drivetrainSim.update(0.020);
 
     leftEncoderSim.setPosition(drivetrainSim.getLeftPositionMeters());
