@@ -93,10 +93,10 @@ public class DriveSubsystem extends SubsystemBase {
     // Apply configurations to the motors
     // kResetSafeParameters puts SPARKMAX to a known state (if sparkmax is replaced)
     // kPersistParameters ensure configuration is not lost when sparkmax looses power (ex. mid-operation power cycles)
-    leftLeader.configure(DriveSubsystemConfigs.globalConfig,ResetMode.kResetSafeParameters,   PersistMode.kPersistParameters);
-    rightLeader.configure(DriveSubsystemConfigs.globalConfig,ResetMode.kResetSafeParameters,   PersistMode.kPersistParameters);
-    leftFollower.configure(DriveSubsystemConfigs.globalConfig,ResetMode.kResetSafeParameters,   PersistMode.kPersistParameters);
-    rightFollower.configure(DriveSubsystemConfigs.globalConfig,ResetMode.kResetSafeParameters,   PersistMode.kPersistParameters);
+    leftLeader.configure(DriveSubsystemConfigs.leftLeaderConfig,ResetMode.kResetSafeParameters,   PersistMode.kPersistParameters);
+    rightLeader.configure(DriveSubsystemConfigs.rightLeaderConfig,ResetMode.kResetSafeParameters,   PersistMode.kPersistParameters);
+    leftFollower.configure(DriveSubsystemConfigs.leftFollowerConfig,ResetMode.kResetSafeParameters,   PersistMode.kPersistParameters);
+    rightFollower.configure(DriveSubsystemConfigs.rightFollowerConfig,ResetMode.kResetSafeParameters,   PersistMode.kPersistParameters);
 
     // setup followers
     DriveSubsystemConfigs.leftFollowerConfig.follow(leftLeader);
@@ -152,11 +152,8 @@ public class DriveSubsystem extends SubsystemBase {
   private void configDashboardEntries() {
     SmartDashboard.putData("Drive/Leader Left", leftLeader);
     SmartDashboard.putData("Drive/Leader Right", rightLeader);
-    SmartDashboard.setDefaultNumber("Drive/Target Position(inch)", 0);
-    SmartDashboard.setDefaultNumber("Drive/Target Velocity", 0);
-    //SmartDashboard.setDefaultBoolean("Drive/Control Mode (false: Velocity)", false);  // Default Velocity
     SmartDashboard.setDefaultBoolean("Drive/Reset Encoder", false);
-    SmartDashboard.putData("Drive/Field", field);
+    SmartDashboard.putData("Drive/Field", field); 
   }
 
   private void updateDashboardEntries() {
@@ -170,7 +167,13 @@ public class DriveSubsystem extends SubsystemBase {
       // reset encoders
       leftEncoder.setPosition(0);
       rightEncoder.setPosition(0);
+      leftEncoderSim.setPosition(0.0);
+      rightEncoderSim.setPosition(0.0);
     }
+
+    SmartDashboard.putNumber("Drive/Encoder Left Sim Position", leftEncoderSim.getPosition());
+    SmartDashboard.putNumber("Drive/Encoder Left Sim Velocity", leftEncoderSim.getVelocity());
+    
   }
 
   @Override
@@ -184,21 +187,33 @@ public class DriveSubsystem extends SubsystemBase {
     // 2. write simulated positions and velocities for simulated components
     //    -- note: negates right side so positive voltages make right side move forward
     drivetrainSim.setInputs(
-        leftLeader.get() * RobotController.getInputVoltage(),
-        rightLeader.get() * RobotController.getInputVoltage());
+      leftDcMotorSim.getAppliedOutput() * RobotController.getInputVoltage(),    // was: leftLeader.get() * RobotController.getInputVoltage(),
+      rightDcMotorSim.getAppliedOutput() * RobotController.getInputVoltage());  // was: rightLeader.get() * RobotController.getInputVoltage());
+          
     drivetrainSim.update(0.020);
 
-    leftEncoderSim.setPosition(drivetrainSim.getLeftPositionMeters());
-    leftEncoderSim.setVelocity(drivetrainSim.getLeftVelocityMetersPerSecond());
-    rightEncoderSim.setPosition(drivetrainSim.getRightPositionMeters());
-    rightEncoderSim.setVelocity(drivetrainSim.getRightVelocityMetersPerSecond());
-
+    leftEncoderSim.iterate(drivetrainSim.getLeftVelocityMetersPerSecond(), 0.020);    // fixme: dt
+    // this is the wpi way? 
+    // leftEncoderSim.setPosition(drivetrainSim.getLeftPositionMeters());
+    // leftEncoderSim.setVelocity(drivetrainSim.getLeftVelocityMetersPerSecond());
+    // rightEncoderSim.setPosition(drivetrainSim.getRightPositionMeters());
+    // rightEncoderSim.setVelocity(drivetrainSim.getRightVelocityMetersPerSecond());
   }
 
   // update control loop 
   public void setClosedLoopControllerPosition(double setPosition) {
     leftClosedLoopController.setReference(setPosition, ControlType.kPosition, ClosedLoopSlot.kSlot0);
     rightClosedLoopController.setReference(setPosition, ControlType.kPosition, ClosedLoopSlot.kSlot0);    
+  }
+
+  public Command setClosedLoopControllerPositionWithSpeed(DriveSubsystem driveSubsystem, DoubleSupplier setPosition, DoubleSupplier targetSpeed) {
+    return Commands.run (
+        () -> leftClosedLoopController.setReference(setPosition.getAsDouble(), ControlType.kPosition, ClosedLoopSlot.kSlot0),
+        // () -> rightClosedLoopController.setReference(setPosition, ControlType.kPosition, ClosedLoopSlot.kSlot0),    
+        // () -> leftLeader.set(targetSpeed.getAsDouble()),
+        // rightLeader.set(targetSpeed.getAsDouble()),
+        driveSubsystem
+      );
   }
 
   public void setClosedLoopControllerVelocity(double setVelocity) {
