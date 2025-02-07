@@ -7,9 +7,6 @@ package frc.robot;
 import edu.wpi.first.hal.HAL;
 import edu.wpi.first.hal.FRCNetComm.tResourceType;
 import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.simulation.BatterySim;
-import edu.wpi.first.wpilibj.simulation.RoboRioSim;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 
@@ -90,17 +87,6 @@ public class Robot extends TimedRobot {
   /** This function is called periodically during autonomous. */
   @Override
   public void autonomousPeriodic() {
-    // if (SmartDashboard.getBoolean("Drive/Control Mode", false)) {
-    //   // Use target velocity as setPoint for close loop controller
-    //   double targetVelocity = SmartDashboard.getNumber("Drive/Target Velocity", 0);
-    //   m_robotContainer.setDriveVelocity(targetVelocity);
-    // }
-    // else {
-    //   double targetPosition = SmartDashboard.getNumber("Drive/Target Position", 0);
-    //   m_robotContainer.setDrivePosition(targetPosition);
-    // }
-    double targetPosition = SmartDashboard.getNumber("Drive/Target Position", 0);
-    m_robotContainer.setDrivePosition(targetPosition);
   }
 
   @Override

@@ -116,7 +116,4 @@ public class RobotContainer {
     driveSubsystem.setClosedLoopControllerVelocity(setVelocity);  
   }
 
-  public void setDrivePosition(double setPosition) {
-    driveSubsystem.setClosedLoopControllerPosition(setPosition);
-  }
 }

@@ -4,6 +4,8 @@
 
 package frc.robot;
 
+import edu.wpi.first.math.util.Units;
+
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide
  * numerical or boolean
@@ -18,15 +20,25 @@ package frc.robot;
  */
 public final class Constants {
   public static final class DriveConstants {
+    // device IDs
     public static final int LEFT_LEADER_ID = 1;
     public static final int LEFT_FOLLOWER_ID = 2;
     public static final int RIGHT_LEADER_ID = 3;
     public static final int RIGHT_FOLLOWER_ID = 4;
 
     // chassis configuration
-    public static final double kWheelDiameterInches = 6.0;
-    public static final double kWheelCircumferenceInches = kWheelDiameterInches * Math.PI;
+    public static final double wheelRadiusInches = 3.0;
+    public static final double wheelDiameterInches = 2 * wheelRadiusInches;
+    public static final double wheelCircumferenceInches = wheelDiameterInches * Math.PI;
 
+    // in meters
+    public static final double wheelRadiusMeters = Units.inchesToMeters(wheelRadiusInches);
+    public static final double wheelDiameterMeters = Units.inchesToMeters(wheelDiameterInches);
+    public static final double wheelCircumferenceMeters = Units.inchesToMeters(wheelCircumferenceInches);
+
+    // speed references meters/sec
+    public static final double walkingSpeedMetersPerSec = 1.0;  
+    public static final double maxSpeedMetersPerSec = 4.0;
   }
 
   public static final class RollerConstants {

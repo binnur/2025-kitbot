@@ -1,8 +1,8 @@
 package frc.robot;
 
 import com.revrobotics.spark.config.SparkMaxConfig;
-import com.revrobotics.spark.ClosedLoopSlot;
-import com.revrobotics.spark.config.ClosedLoopConfig.FeedbackSensor;
+
+import edu.wpi.first.math.system.plant.DCMotor;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 
 import frc.robot.Constants.DriveConstants;
@@ -18,15 +18,32 @@ public final class MotorConfigs {
         public static final SparkMaxConfig leftFollowerConfig = new SparkMaxConfig();
         public static final SparkMaxConfig rightFollowerConfig = new SparkMaxConfig();
 
-        // motor config settings
-        public static final double kDriveMotorNominalVoltage = 12.0;
-        public static final int kDriveMotorCurrentLimit = 60;
-        public static final int kDriveCANTimeout = 250; // in milliseconds
- 
-        // close loop controller conversion factors -- FIXME: getEncoder() returns in inches ? Velocity??
-        public static final int kEncoderCoundsPerRevolution = 2048 * 4;
-        public static final double kDrivePositionConversionFactor = kEncoderCoundsPerRevolution / DriveConstants.kWheelCircumferenceInches;
-        public static final double kDriveVelocityConversionFactor = kEncoderCoundsPerRevolution / DriveConstants.kWheelCircumferenceInches;
+        // motor configurations
+        public static final int currentLimit = 60;
+        public static final double nominalVoltage = 12.0;
+        public static final int canBusTimeout = 250; // in milliseconds
+
+        public static final boolean leftInverted = false;
+        public static final boolean rightInverted = true;
+        public static final DCMotor gearbox = DCMotor.getCIM(2);
+
+        // velocity PID configurations
+        // note: these values are taken from KitBot (AdvantageKit template) and should be updated to match our robot
+        public static final double reakKp = 0.0;
+        public static final double realKd = 0.0;
+        public static final double realKs = 0.0;
+        public static final double realKv = 0.1;
+
+        // TODO: how to apply these w/o DriveIOSim class
+        public static final double simKp = 0.05;
+        public static final double simKd = 0.0;
+        public static final double simKs = 0.0;
+        public static final double simKv = 0.227;
+    
+            // close loop controller conversion factors
+        public static final int kEncoderCountsPerRevolution = 2048 * 4;     // one rotation is 8192 ticks of the hardware encoder
+        public static final double kDrivePositionConversionFactor = DriveConstants.wheelCircumferenceMeters / kEncoderCountsPerRevolution;
+        public static final double kDriveVelocityConversionFactor = DriveConstants.wheelCircumferenceMeters / kEncoderCountsPerRevolution;     // RPM (per minute)
 
         static {
             // Create the globalConfiguration to apply to motors. Voltage compensation
@@ -34,8 +51,8 @@ public final class MotorConfigs {
             // battery voltages (at the cost of a little bit of top speed on a fully charged
             // battery). The current limit helps prevent tripping breakers.
             globalConfig
-                .voltageCompensation(DriveSubsystemConfigs.kDriveMotorNominalVoltage)
-                .smartCurrentLimit(DriveSubsystemConfigs.kDriveMotorCurrentLimit)
+                .voltageCompensation(DriveSubsystemConfigs.nominalVoltage)
+                .smartCurrentLimit(DriveSubsystemConfigs.currentLimit)
                 .idleMode(IdleMode.kBrake);      
             
             // Apply global config to the motor configurations
@@ -44,45 +61,34 @@ public final class MotorConfigs {
             leftFollowerConfig.apply(globalConfig);
             rightFollowerConfig.apply(globalConfig);
 
+            // Apply if inverted to leaders
+            leftLeaderConfig.inverted(DriveSubsystemConfigs.leftInverted);
+            rightLeaderConfig.inverted(DriveSubsystemConfigs.rightInverted);
+
             // configure encoders
             // velocityConversionFactor returns rotations per min -- divide by 60.0 for rotation per seconds
             leftLeaderConfig.encoder
                 .positionConversionFactor(DriveSubsystemConfigs.kDrivePositionConversionFactor)
                 .velocityConversionFactor(DriveSubsystemConfigs.kDriveVelocityConversionFactor / 60.0);
-                rightLeaderConfig.encoder
+            rightLeaderConfig.encoder
                 .positionConversionFactor(DriveSubsystemConfigs.kDrivePositionConversionFactor)
                 .velocityConversionFactor(DriveSubsystemConfigs.kDriveVelocityConversionFactor / 60.0);
 
-            // configure closed loop controllers
+            // configure closed loop controllers for velocity -- by default written to slot 0
             leftLeaderConfig.closedLoop
-                .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
                 // set PID values for position control. Closed loop slot defaults to slot 0
-                .p(0.1)
-                .i(0)
-                .d(0)
-                .outputRange(-1, 1)
-                // set PID values for velocity control to slot 1
-                .p(0.0001, ClosedLoopSlot.kSlot1)
-                .i(0, ClosedLoopSlot.kSlot1)
-                .d(0, ClosedLoopSlot.kSlot1)
-                // FIXME: magic numbers! 
-                .velocityFF(1.0 / 5767, ClosedLoopSlot.kSlot1)
-                .outputRange(-1, 1, ClosedLoopSlot.kSlot1);
+                .p(DriveSubsystemConfigs.reakKp)
+                .i(0.0)
+                .d(DriveSubsystemConfigs.realKd)
+                .velocityFF(0.0)        // FIXME: 1.0 / 5767 REV example
+                .outputRange(-1, 1);
+ 
             rightLeaderConfig.closedLoop
-                .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
-                // set PID values for position control. Closed loop slot defaults to slot 0
-                .p(0.1)
-                .i(0)
-                .d(0)
-                .outputRange(-1, 1)
-                // set PID values for velocity control to slot 1
-                .p(0.0001, ClosedLoopSlot.kSlot1)
-                .i(0, ClosedLoopSlot.kSlot1)
-                .d(0, ClosedLoopSlot.kSlot1)
-                // FIXME: magic numbers! 
-                .velocityFF(1.0 / 5767, ClosedLoopSlot.kSlot1)
-                .outputRange(-1, 1, ClosedLoopSlot.kSlot1);
-
+                .p(DriveSubsystemConfigs.reakKp)
+                .i(0.0)
+                .d(DriveSubsystemConfigs.realKd)
+                .velocityFF(0.0)        // FIXME: 1.0 / 5767 REV example
+                .outputRange(-1, 1);
         }
     }
 
