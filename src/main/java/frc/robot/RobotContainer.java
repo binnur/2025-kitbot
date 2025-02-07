@@ -12,8 +12,8 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.OperatorConstants;
 import frc.robot.Constants.RollerConstants;
 import frc.robot.commands.Autos;
-import frc.robot.subsystems.CANDriveSubsystem;
-import frc.robot.subsystems.CANRollerSubsystem;
+import frc.robot.subsystems.DriveSubsystem;
+import frc.robot.subsystems.RollerSubsystem;
 
 /**
  * This class is where the bulk of the robot should be declared. Since
@@ -26,8 +26,8 @@ import frc.robot.subsystems.CANRollerSubsystem;
  */
 public class RobotContainer {
   // The robot's subsystems
-  private final CANDriveSubsystem driveSubsystem = new CANDriveSubsystem();
-  private final CANRollerSubsystem rollerSubsystem = new CANRollerSubsystem();
+  private final DriveSubsystem driveSubsystem = new DriveSubsystem();
+  private final RollerSubsystem rollerSubsystem = new RollerSubsystem();
 
   // The driver's controller
   private final CommandXboxController driverController = new CommandXboxController(
@@ -110,5 +110,13 @@ public class RobotContainer {
   public Command getAutonomousCommand() {
     // An example command will be run in autonomous
     return autoChooser.getSelected();
+  }
+
+  public void setDriveVelocity(double setVelocity) {
+    driveSubsystem.setClosedLoopControllerVelocity(setVelocity);  
+  }
+
+  public void setDrivePosition(double setPosition) {
+    driveSubsystem.setClosedLoopControllerPosition(setPosition);
   }
 }
