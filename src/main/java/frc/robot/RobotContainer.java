@@ -29,6 +29,7 @@ import frc.robot.subsystems.RollerSubsystem;
  @Logged
 public class RobotContainer {
   // The robot's subsystems
+  @Logged(name ="DriveSystem")
   private final DriveSubsystem driveSubsystem = new DriveSubsystem();
   private final RollerSubsystem rollerSubsystem = new RollerSubsystem();
 

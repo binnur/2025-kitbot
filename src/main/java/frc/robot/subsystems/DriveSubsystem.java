@@ -27,9 +27,12 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.epilogue.Logged;
+
 import frc.robot.MotorConfigs.DriveSubsystemConfigs;
 import frc.robot.Constants.DriveConstants;
 
+@Logged
 public class DriveSubsystem extends SubsystemBase {
    // create brushed motors for drive train
    private final SparkMaxSendable leftLeader = new SparkMaxSendable(DriveConstants.LEFT_LEADER_ID, MotorType.kBrushed);
