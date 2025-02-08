@@ -38,7 +38,7 @@ public final class Constants {
 
     // speed references meters/sec
     public static final double walkingSpeedMetersPerSec = 1.0;  
-    public static final double maxSpeedMetersPerSec = 4.0;
+    public static final double maxSpeedMetersPerSec = 3.0;  // FIXME
   }
 
   public static final class RollerConstants {
