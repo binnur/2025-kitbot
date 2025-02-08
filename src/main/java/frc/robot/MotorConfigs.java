@@ -2,7 +2,6 @@ package frc.robot;
 
 import com.revrobotics.spark.config.SparkMaxConfig;
 
-import edu.wpi.first.math.system.plant.DCMotor;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 
 import frc.robot.Constants.DriveConstants;
@@ -25,7 +24,6 @@ public final class MotorConfigs {
 
         public static final boolean leftInverted = false;
         public static final boolean rightInverted = true;
-        public static final DCMotor gearbox = DCMotor.getCIM(2);
 
         // velocity PID configurations
         // note: these values are taken from KitBot (AdvantageKit template) and should be updated to match our robot

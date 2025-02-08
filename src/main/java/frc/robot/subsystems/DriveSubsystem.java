@@ -35,10 +35,12 @@ import frc.robot.Constants.DriveConstants;
 @Logged
 public class DriveSubsystem extends SubsystemBase {
    // create brushed motors for drive train
-   private final SparkMaxSendable leftLeader = new SparkMaxSendable(DriveConstants.LEFT_LEADER_ID, MotorType.kBrushed);
-   private final SparkMaxSendable leftFollower = new SparkMaxSendable(DriveConstants.LEFT_FOLLOWER_ID, MotorType.kBrushed);
-   private final SparkMaxSendable  rightLeader = new SparkMaxSendable(DriveConstants.RIGHT_LEADER_ID, MotorType.kBrushed);
-   private final SparkMaxSendable  rightFollower = new SparkMaxSendable(DriveConstants.RIGHT_FOLLOWER_ID, MotorType.kBrushed);
+  @Logged(name="Leader Left")
+  private final SparkMaxSendable leftLeader = new SparkMaxSendable(DriveConstants.LEFT_LEADER_ID, MotorType.kBrushed);
+  private final SparkMaxSendable leftFollower = new SparkMaxSendable(DriveConstants.LEFT_FOLLOWER_ID, MotorType.kBrushed);
+  @Logged(name="Leader Right")
+  private final SparkMaxSendable  rightLeader = new SparkMaxSendable(DriveConstants.RIGHT_LEADER_ID, MotorType.kBrushed);
+  private final SparkMaxSendable  rightFollower = new SparkMaxSendable(DriveConstants.RIGHT_FOLLOWER_ID, MotorType.kBrushed);
 
   // setup closed loop controller
   private final SparkClosedLoopController leftController = leftLeader.getClosedLoopController();
@@ -46,7 +48,10 @@ public class DriveSubsystem extends SubsystemBase {
   private final RelativeEncoder leftEncoder = leftLeader.getEncoder();
   private final RelativeEncoder rightEncoder = rightLeader.getEncoder();
 
+  @Logged(name="Differential Drive")
   private final DifferentialDrive drive;
+
+
 
   //private final Field2d field = new Field2d(); 
 
@@ -63,6 +68,23 @@ public class DriveSubsystem extends SubsystemBase {
   private SparkRelativeEncoderSim leftEncoderSim;
   private SparkRelativeEncoderSim rightEncoderSim;
   public final DifferentialDrivetrainSim drivetrainSim;
+
+  @Logged(name="DriveIOInfo")
+  private final DriveIOInfo ioInfo = new DriveIOInfo();
+  @Logged
+  public static class DriveIOInfo {
+    public double leftPositionInMeters = 0.0;
+    public double leftVelocityInMetersPerSec = 0.0;
+    public double leftAppliedVolts = 0.0;
+    public double[] leftCurrentAmps = new double[] {};
+
+    public double rightPositionInMeters = 0.0;
+    public double rightVelocityInMetersPerSec = 0.0;
+    public double rightAppliedVolts = 0.0;
+    public double[] rightCurrentAmps = new double[] {};
+
+    // TODO: add updateInputs() to this class?
+  }
 
   public DriveSubsystem() {
     // Set can timeout. Because this project only sets parameters once on
@@ -98,6 +120,21 @@ public class DriveSubsystem extends SubsystemBase {
      drive = new DifferentialDrive(leftLeader, rightLeader);
 
     // construct simulation
+    drivetrainSim = new DifferentialDrivetrainSim(
+      DriveConstants.gearbox,
+      DriveConstants.gearing,
+      DriveConstants.robotMOI,
+      DriveConstants.robotMassKg,
+      DriveConstants.wheelRadiusMeters,
+      DriveConstants.trackWidthInMeters,
+      // The standard deviations for measurement noise:
+      // x and y: 0.001 m
+      // heading: 0.001 rad
+      // l and r velocity: 0.1 m/s
+      // l and r positions: 0.005 m
+      VecBuilder.fill(0.001, 0.001, 0.001, 01, 01, 0.005, 0.005)
+    );
+
     leftDcMotor = DCMotor.getCIM(1);
     rightDcMotor = DCMotor.getCIM(1);
     leftDcMotorSim = new SparkMaxSim(leftLeader, leftDcMotor);
@@ -107,22 +144,6 @@ public class DriveSubsystem extends SubsystemBase {
     leftEncoderSim.setPosition(0.0);
     rightEncoderSim.setPosition(0.0);
   
-    drivetrainSim = new DifferentialDrivetrainSim(
-      DCMotor.getCIM(2),      // two CIM motors on each side of drivetrain
-      1,                                // no gear reduction
-      7.5,                              // FIXME: MOI of 7.5kg m^2 from CAD model 
-      60.0,                             // FIXME: mass of the robot
-      Units.inchesToMeters(3),   // Robot uses 3" radius wheels
-      0.7112,                           // Track width is 0.7112 meters
-      // The standard deviations for measurement noise:
-      // x and y: 0.001 m
-      // heading: 0.001 rad
-      // l and r velocity: 0.1 m/s
-      // l and r positions: 0.005 m
-      VecBuilder.fill(0.001, 0.001, 0.001, 01, 01, 0.005, 0.005) 
-    );
-
-    // Dashboard configurations
     // Add Live Window -- used in Test mode
     addChild("Drive/leftLeader", leftLeader);
     addChild("Drive/rightLeader", rightLeader);
@@ -156,6 +177,24 @@ public class DriveSubsystem extends SubsystemBase {
     SmartDashboard.putNumber("Drive/Encoder Left Sim Position", leftEncoderSim.getPosition());
     SmartDashboard.putNumber("Drive/Encoder Left Sim Velocity", leftEncoderSim.getVelocity());
     
+  }
+
+  // set velocity for left & right motors
+  public void runOpenLoop(double leftSpeed, double rightSpeed) {
+    leftLeader.set(leftSpeed);
+    rightLeader.set(rightSpeed);
+  }
+
+  public void stop()
+  {
+    leftLeader.set(0.0);
+    rightLeader.set(0.0);
+  }
+
+  // zero drive encoders
+  public void resetEncoders() {
+    leftEncoder.setPosition(0.0);
+    rightEncoder.setPosition(0.0);
   }
 
   @Override

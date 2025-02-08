@@ -4,6 +4,7 @@
 
 package frc.robot;
 
+import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
 
 /**
@@ -26,12 +27,19 @@ public final class Constants {
     public static final int RIGHT_LEADER_ID = 2;
     public static final int RIGHT_FOLLOWER_ID = 1;
 
-    // chassis configuration
+    // chassis configuration for PathPlanner or simulations
+    // FIXME: update assumed numbers for simulation from CAD
+    public static final DCMotor gearbox = DCMotor.getCIM(2);
+    public static final double gearing = 1.0;   // no gear reduction in 2025-9111 robot
+    public static final double robotMOI = 7.5;       // moment of inertia of drivetrain in its center
+    public static final double robotMassKg = 60.0;   
+    public static final double trackWidthInMeters = 0.7112; // distance between right & left wheels
+
     public static final double wheelRadiusInches = 3.0;
     public static final double wheelDiameterInches = 2 * wheelRadiusInches;
     public static final double wheelCircumferenceInches = wheelDiameterInches * Math.PI;
 
-    // in meters
+    // chassis configuration in meters
     public static final double wheelRadiusMeters = Units.inchesToMeters(wheelRadiusInches);
     public static final double wheelDiameterMeters = Units.inchesToMeters(wheelDiameterInches);
     public static final double wheelCircumferenceMeters = Units.inchesToMeters(wheelCircumferenceInches);
