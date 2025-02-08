@@ -4,8 +4,12 @@
 
 package frc.robot;
 
+import edu.wpi.first.epilogue.Epilogue;
+import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.epilogue.logging.errors.ErrorHandler;
 import edu.wpi.first.hal.HAL;
 import edu.wpi.first.hal.FRCNetComm.tResourceType;
+import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -19,6 +23,7 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
  * build.gradle file in the
  * project.
  */
+@Logged(name ="B KitBot")
 public class Robot extends TimedRobot {
   private Command m_autonomousCommand;
 
@@ -38,6 +43,22 @@ public class Robot extends TimedRobot {
 
     // Used to track usage of Kitbot code, please do not remove.
     HAL.report(tResourceType.kResourceType_Framework, 10);
+
+    // Configure logging
+    DataLogManager.start();
+    Epilogue.configure(config -> {
+      if (isSimulation()) {
+          config.errorHandler = ErrorHandler.crashOnError();
+      }
+      config.root = "Telemetry";
+
+      // Only log critical information instead of the default DEBUG level.
+      // This can be helpful in a pinch to reduce network bandwidth or log file size
+      // while still logging important information.
+      // FIXME! Before competition
+      //config.minimumImportance = Logged.Importance.CRITICAL;
+  });
+  Epilogue.bind(this); //"Epilogue cannot be resolved" error will go away when you build
   }
 
   /**
