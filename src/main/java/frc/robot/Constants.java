@@ -21,10 +21,10 @@ import edu.wpi.first.math.util.Units;
 public final class Constants {
   public static final class DriveConstants {
     // device IDs
-    public static final int LEFT_LEADER_ID = 1;
-    public static final int LEFT_FOLLOWER_ID = 2;
-    public static final int RIGHT_LEADER_ID = 3;
-    public static final int RIGHT_FOLLOWER_ID = 4;
+    public static final int LEFT_LEADER_ID = 3;
+    public static final int LEFT_FOLLOWER_ID = 4;
+    public static final int RIGHT_LEADER_ID = 2;
+    public static final int RIGHT_FOLLOWER_ID = 1;
 
     // chassis configuration
     public static final double wheelRadiusInches = 3.0;
