@@ -193,6 +193,8 @@ public class DriveSubsystem extends SubsystemBase {
       leftDcMotorSim.getAppliedOutput() * RobotController.getInputVoltage(),    // was: leftLeader.get() * RobotController.getInputVoltage(),
       rightDcMotorSim.getAppliedOutput() * RobotController.getInputVoltage());  // was: rightLeader.get() * RobotController.getInputVoltage());
     
+    System.out.printf("in simulationPeriodic %.2f %.2f\n", drivetrainSim.getLeftVelocityMetersPerSecond(), drivetrainSim.getRightVelocityMetersPerSecond());
+
     // 2.  update drivetrain state 
     drivetrainSim.update(0.020);
     
@@ -215,20 +217,37 @@ public class DriveSubsystem extends SubsystemBase {
    * Quick adjustment to the simulated values to update system state
    */
   private void updateSimState(double leftVolts, double rightVolts) {
+      System.out.printf("1.in updateSim %.2f %.2f\n", leftVolts, rightVolts);
       // stop the simulated drive & iterate over the simulated motors
       drivetrainSim.setInputs(
         leftVolts,
         rightVolts);
-      
+      drivetrainSim.update(0.010);
+      //System.out.printf("2.in updateSimState %.2f %.2f\n", drivetrainSim.getLeftVelocityMetersPerSecond(), drivetrainSim.getRightVelocityMetersPerSecond());
+
       leftDcMotorSim.iterate(drivetrainSim.getLeftVelocityMetersPerSecond(), RobotController.getBatteryVoltage(), 0.0);
       leftDcMotorSim.iterate(drivetrainSim.getRightVelocityMetersPerSecond(), RobotController.getBatteryVoltage(), 0.0);
+
+      updateDriveIOInfo();
   }
 
+  /* 
+   * Set velocity for left & right motors
+   * FIXME: in simulation runOpenLoop behaves differently from drive.arcadeDrive(). The velocities differs greatly
+   * Note: use driveArcadeCmd() for running open loop
+   */
   // set velocity for left & right motors
   public void runOpenLoop(double leftVolts, double rightVolts) {
-
+    // setVoltage behaves differently in simulation from drive.arcade() 
     leftLeader.setVoltage(leftVolts);
     rightLeader.setVoltage(rightVolts);
+
+    // using drive.arcade() in runOpenLoop doesn't improve simulation
+    // drive.arcadeDrive(leftVolts, rightVolts);
+    if (Robot.isSimulation()) {
+      //System.out.printf("in runOpenLoop %.2f %.2f\n", leftVolts, rightVolts);
+      updateSimState(leftVolts, rightVolts);
+    }
   }
 
   public void stop()
@@ -276,7 +295,7 @@ public class DriveSubsystem extends SubsystemBase {
   }
 
   public Command driveOpenLoopCmd(
-      DriveSubsystem subsystem, DoubleSupplier xSpeed, DoubleSupplier zRotation) {
+      DriveSubsystem subdsystem, DoubleSupplier xSpeed, DoubleSupplier zRotation) {
         double leftVolts = xSpeed.getAsDouble() + zRotation.getAsDouble();
         double rightVolts = xSpeed.getAsDouble() +zRotation.getAsDouble();
         return Commands.run(
