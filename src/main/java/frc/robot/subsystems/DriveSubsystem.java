@@ -16,9 +16,7 @@ import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 
-import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim;
@@ -33,6 +31,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.epilogue.Logged;
 
 import frc.robot.MotorConfigs.DriveSubsystemConfigs;
+import frc.robot.Robot;
 import frc.robot.Constants.DriveConstants;
 
 @Logged
@@ -72,6 +71,9 @@ public class DriveSubsystem extends SubsystemBase {
   private SparkRelativeEncoderSim rightEncoderSim;
   public final DifferentialDrivetrainSim drivetrainSim;
 
+  public double startLeftPositionInMeters = 0.0;
+  public double startRightPositionInMeters = 0.0;
+
   @Logged(name="DriveIOInfo")
   private final DriveIOInfo ioInfo = new DriveIOInfo();
   @Logged
@@ -79,12 +81,12 @@ public class DriveSubsystem extends SubsystemBase {
     public double leftPositionInMeters = 0.0;
     public double leftVelocityInMetersPerSec = 0.0;
     public double leftAppliedVolts = 0.0;
-    public double[] leftCurrentAmps = new double[] {};
+    public double leftCurrentAmps = 0.0;
 
     public double rightPositionInMeters = 0.0;
     public double rightVelocityInMetersPerSec = 0.0;
     public double rightAppliedVolts = 0.0;
-    public double[] rightCurrentAmps = new double[] {};
+    public double rightCurrentAmps = 0.0;
 
     // TODO: add updateInputs() to this class?
   }
@@ -114,10 +116,6 @@ public class DriveSubsystem extends SubsystemBase {
     // setup followers
     DriveSubsystemConfigs.leftFollowerConfig.follow(leftLeader);
     DriveSubsystemConfigs.rightFollowerConfig.follow(rightLeader);
-
-    // reset encoder positions
-    leftEncoder.setPosition(0.0);
-    rightEncoder.setPosition(0.0);
   
      // construct the differential drive 
      drive = new DifferentialDrive(leftLeader, rightLeader);
@@ -150,10 +148,11 @@ public class DriveSubsystem extends SubsystemBase {
     rightDcMotor = DCMotor.getCIM(1);
     leftDcMotorSim = new SparkMaxSim(leftLeader, leftDcMotor);
     rightDcMotorSim = new SparkMaxSim(rightLeader, rightDcMotor);
-    leftEncoderSim = new SparkRelativeEncoderSim(leftLeader);     // is this setting up encoder correctly?
+    leftEncoderSim = new SparkRelativeEncoderSim(leftLeader);    
     rightEncoderSim = new SparkRelativeEncoderSim(rightLeader); 
-    leftEncoderSim.setPosition(0.0);
-    rightEncoderSim.setPosition(0.0);
+
+    // reset encoder positions
+    resetEncoders();
   
     // Add Live Window -- used in Test mode
     addChild("Drive/leftLeader", leftLeader);
@@ -166,64 +165,38 @@ public class DriveSubsystem extends SubsystemBase {
   private void configDashboardEntries() {
     SmartDashboard.putData("Drive/Leader Left", leftLeader);
     SmartDashboard.putData("Drive/Leader Right", rightLeader);
-    SmartDashboard.setDefaultBoolean("Drive/Reset Encoder", false);
+    SmartDashboard.putData(resetEncodersCmd());
     // SmartDashboard.putData("Drive/Field", field); 
   }
 
-  private void updateDashboardEntries() {
-    SmartDashboard.putNumber("Drive/Actual Position Left", leftEncoder.getPosition());
-    SmartDashboard.putNumber("Drive/Actual Position Right", rightEncoder.getPosition());
-    SmartDashboard.putNumber("Drive/Actual Velocity Left", leftEncoder.getVelocity());
-    SmartDashboard.putNumber("Drive/Actual Velocity Right", leftEncoder.getVelocity());
-    
-    if (SmartDashboard.getBoolean("Drive/Reset Encoder", false)) {
-      SmartDashboard.putBoolean("Drive/Reset Encoder", false);
-      // reset encoders
-      leftEncoder.setPosition(0);
-      rightEncoder.setPosition(0);
-      leftEncoderSim.setPosition(0.0);
-      rightEncoderSim.setPosition(0.0);
-    }
+  private void updateDriveIOInfo() {
+    ioInfo.leftPositionInMeters = leftLeader.getEncoder().getPosition();
+    ioInfo.leftVelocityInMetersPerSec = leftLeader.get();
+    ioInfo.leftAppliedVolts = leftLeader.getAppliedOutput();
+    ioInfo.leftCurrentAmps = leftLeader.getOutputCurrent();
 
-    SmartDashboard.putNumber("Drive/Encoder Left Sim Position", leftEncoderSim.getPosition());
-    SmartDashboard.putNumber("Drive/Encoder Left Sim Velocity", leftEncoderSim.getVelocity());
-    
-  }
-
-  // set velocity for left & right motors
-  public void runOpenLoop(double leftSpeed, double rightSpeed) {
-    leftLeader.set(leftSpeed);
-    rightLeader.set(rightSpeed);
-  }
-
-  public void stop()
-  {
-    leftLeader.set(0.0);
-    rightLeader.set(0.0);
-  }
-
-  // zero drive encoders
-  public void resetEncoders() {
-    leftEncoder.setPosition(0.0);
-    rightEncoder.setPosition(0.0);
+    ioInfo.rightPositionInMeters = rightLeader.getEncoder().getPosition();
+    ioInfo.rightVelocityInMetersPerSec = rightLeader.get();
+    ioInfo.rightAppliedVolts = rightLeader.getAppliedOutput();
+    ioInfo.rightCurrentAmps = rightLeader.getOutputCurrent();  
   }
 
   @Override
   public void periodic() {
-    updateDashboardEntries();
+    updateDriveIOInfo();
   }
 
+   // Update simulation for drive subsystem
   public void simulationPeriodic() {
-    // Update simulation for drive subsystem
-    // 1. set 'inputs' (voltages)
-    // 2. write simulated positions and velocities for simulated components
-    //    -- note: negates right side so positive voltages make right side move forward
+    // 1. set 'inputs' (voltages) to pysical simulation
     drivetrainSim.setInputs(
       leftDcMotorSim.getAppliedOutput() * RobotController.getInputVoltage(),    // was: leftLeader.get() * RobotController.getInputVoltage(),
       rightDcMotorSim.getAppliedOutput() * RobotController.getInputVoltage());  // was: rightLeader.get() * RobotController.getInputVoltage());
-          
+    
+    // 2.  update drivetrain state 
     drivetrainSim.update(0.020);
     
+    // 3. iterate on simulated motors -- these will update corresponding spark motor & encoder values
     leftDcMotorSim.iterate(
       drivetrainSim.getLeftVelocityMetersPerSecond(),
       RobotController.getBatteryVoltage(), 
@@ -235,17 +208,49 @@ public class DriveSubsystem extends SubsystemBase {
       0.020
     );
 
-    // update DriveIOInfo
-    // ioInfo.leftVelocityInMetersPerSec =  leftDcMotorSim.getVelocity(); // drivetrainSim.getLeftVelocityMetersPerSecond();
-    // ioInfo.leftPositionInMeters = leftDcMotorSim.getPosition();   
-
-    //leftEncoderSim.iterate(drivetrainSim.getLeftVelocityMetersPerSecond(), 0.020);    // fixme: dt
-    // this is the wpi way? 
-    // leftEncoderSim.setPosition(drivetrainSim.getLeftPositionMeters());
-    // leftEncoderSim.setVelocity(drivetrainSim.getLeftVelocityMetersPerSecond());
-    // rightEncoderSim.setPosition(drivetrainSim.getRightPositionMeters());
-    // rightEncoderSim.setVelocity(drivetrainSim.getRightVelocityMetersPerSecond());
+    updateDriveIOInfo();
   }
+
+  /* 
+   * Quick adjustment to the simulated values to update system state
+   */
+  private void updateSimState(double leftVolts, double rightVolts) {
+      // stop the simulated drive & iterate over the simulated motors
+      drivetrainSim.setInputs(
+        leftVolts,
+        rightVolts);
+      
+      leftDcMotorSim.iterate(drivetrainSim.getLeftVelocityMetersPerSecond(), RobotController.getBatteryVoltage(), 0.0);
+      leftDcMotorSim.iterate(drivetrainSim.getRightVelocityMetersPerSecond(), RobotController.getBatteryVoltage(), 0.0);
+  }
+
+  // set velocity for left & right motors
+  public void runOpenLoop(double leftVolts, double rightVolts) {
+
+    leftLeader.setVoltage(leftVolts);
+    rightLeader.setVoltage(rightVolts);
+  }
+
+  public void stop()
+  {
+    runOpenLoop(0.0, 0.0);
+  }
+
+  /* Zero drive encoders
+   * Note: when running in simulation, need to stop the drivetrain & iterate on simulated motors
+   */
+  public void resetEncoders() {
+    if (Robot.isSimulation()) {
+      // update simulated drive 
+      updateSimState(drivetrainSim.getLeftVelocityMetersPerSecond(), drivetrainSim.getRightVelocityMetersPerSecond());
+      // reset the simulated encoder 
+      leftDcMotorSim.setPosition(0.0);
+      rightDcMotorSim.setPosition(0.0);
+    } 
+    // note in simulation there is a small drift 
+    leftLeader.getEncoder().setPosition(0.0);
+    rightLeader.getEncoder().setPosition(0.0);
+} 
 
   public Command setClosedLoopControllerPositionWithSpeed(DriveSubsystem driveSubsystem, DoubleSupplier setPosition, DoubleSupplier targetSpeed) {
     return Commands.run (
@@ -263,20 +268,25 @@ public class DriveSubsystem extends SubsystemBase {
   }
 
   // Command to drive the robot with joystick inputs
-  public Command driveArcade(
+  public Command driveArcadeCmd(
       DriveSubsystem driveSubsystem, DoubleSupplier xSpeed, DoubleSupplier zRotation) {
     return Commands.run(
-        () -> drive.arcadeDrive(xSpeed.getAsDouble(), zRotation.getAsDouble()), driveSubsystem);
+        () -> drive.arcadeDrive(xSpeed.getAsDouble(), zRotation.getAsDouble()), driveSubsystem)
+        .withName("Drive/CMD/driveArcade");
   }
 
   public Command driveOpenLoopCmd(
       DriveSubsystem subsystem, DoubleSupplier xSpeed, DoubleSupplier zRotation) {
-        double leftSpeed = xSpeed.getAsDouble() + zRotation.getAsDouble();
-        double rightSpeed = xSpeed.getAsDouble() +zRotation.getAsDouble();
+        double leftVolts = xSpeed.getAsDouble() + zRotation.getAsDouble();
+        double rightVolts = xSpeed.getAsDouble() +zRotation.getAsDouble();
         return Commands.run(
-          (() -> this.runOpenLoop(leftSpeed, rightSpeed))
+          (() -> this.runOpenLoop(leftVolts, rightVolts))
         );
   }
-  
 
+  public Command resetEncodersCmd() {
+    return this.runOnce(this::resetEncoders)
+      .withName("Drive/CMD/Reset Encoders");
+  }
+  
 }
