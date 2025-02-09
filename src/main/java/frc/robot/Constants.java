@@ -24,13 +24,13 @@ public final class Constants {
     // device IDs
     public static final int LEFT_LEADER_ID = 3;
     public static final int LEFT_FOLLOWER_ID = 4;
-    public static final int RIGHT_LEADER_ID = 2;
-    public static final int RIGHT_FOLLOWER_ID = 1;
+    public static final int RIGHT_LEADER_ID = 1;
+    public static final int RIGHT_FOLLOWER_ID = 2;
 
     // chassis configuration for PathPlanner or simulations
     // FIXME: update assumed numbers for simulation from CAD
     public static final DCMotor gearbox = DCMotor.getCIM(2);
-    public static final double gearing = 1.0;   // no gear reduction in 2025-9111 robot
+    public static final double gearing = 8.45;   // kitbot gearing: k8p45
     public static final double robotMOI = 7.5;       // moment of inertia of drivetrain in its center
     public static final double robotMassKg = 60.0;   
     public static final double trackWidthInMeters = 0.7112; // distance between right & left wheels

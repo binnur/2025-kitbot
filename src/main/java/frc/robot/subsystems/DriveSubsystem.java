@@ -22,6 +22,9 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim;
+import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim.KitbotGearing;
+import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim.KitbotMotor;
+import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim.KitbotWheelSize;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -119,20 +122,28 @@ public class DriveSubsystem extends SubsystemBase {
      // construct the differential drive 
      drive = new DifferentialDrive(leftLeader, rightLeader);
 
-    // construct simulation
-    drivetrainSim = new DifferentialDrivetrainSim(
-      DriveConstants.gearbox,
-      DriveConstants.gearing,
-      DriveConstants.robotMOI,
-      DriveConstants.robotMassKg,
-      DriveConstants.wheelRadiusMeters,
-      DriveConstants.trackWidthInMeters,
-      // The standard deviations for measurement noise:
-      // x and y: 0.001 m
-      // heading: 0.001 rad
-      // l and r velocity: 0.1 m/s
-      // l and r positions: 0.005 m
-      VecBuilder.fill(0.001, 0.001, 0.001, 01, 01, 0.005, 0.005)
+    // construct simulation -- important, adding noise distorts the readings and simulation becomes jittery
+    // drivetrainSim = new DifferentialDrivetrainSim(
+    //   DriveConstants.gearbox,
+    //   DriveConstants.gearing,
+    //   DriveConstants.robotMOI,
+    //   DriveConstants.robotMassKg,
+    //   DriveConstants.wheelRadiusMeters,
+    //   DriveConstants.trackWidthInMeters,
+    //   // The standard deviations for measurement noise:
+    //   // x and y: 0.001 m
+    //   // heading: 0.001 rad
+    //   // l and r velocity: 0.1 m/s
+    //   // l and r positions: 0.005 m
+    //   VecBuilder.fill(0.0, 0.0, 0.0, 0, 0, 0.0, 0.0)     // was: fill(0.001, 0.001, 0.001, 01, 01, 0.005, 0.005)
+    // );
+
+    // Using kitbot simulation -- resulted in less jitter in encoder & velocity readings
+    drivetrainSim = DifferentialDrivetrainSim.createKitbotSim(
+      KitbotMotor.kDualCIMPerSide,
+      KitbotGearing.k8p45,    // KitbotGearing.k10p71, i.e. 10.71:1
+      KitbotWheelSize.kSixInch,
+      null
     );
 
     leftDcMotor = DCMotor.getCIM(1);
@@ -212,8 +223,23 @@ public class DriveSubsystem extends SubsystemBase {
       rightDcMotorSim.getAppliedOutput() * RobotController.getInputVoltage());  // was: rightLeader.get() * RobotController.getInputVoltage());
           
     drivetrainSim.update(0.020);
+    
+    leftDcMotorSim.iterate(
+      drivetrainSim.getLeftVelocityMetersPerSecond(),
+      RobotController.getBatteryVoltage(), 
+      0.020);
 
-    leftEncoderSim.iterate(drivetrainSim.getLeftVelocityMetersPerSecond(), 0.020);    // fixme: dt
+    rightDcMotorSim.iterate(
+      drivetrainSim.getRightVelocityMetersPerSecond(),
+      RobotController.getBatteryVoltage(),
+      0.020
+    );
+
+    // update DriveIOInfo
+    // ioInfo.leftVelocityInMetersPerSec =  leftDcMotorSim.getVelocity(); // drivetrainSim.getLeftVelocityMetersPerSecond();
+    // ioInfo.leftPositionInMeters = leftDcMotorSim.getPosition();   
+
+    //leftEncoderSim.iterate(drivetrainSim.getLeftVelocityMetersPerSecond(), 0.020);    // fixme: dt
     // this is the wpi way? 
     // leftEncoderSim.setPosition(drivetrainSim.getLeftPositionMeters());
     // leftEncoderSim.setVelocity(drivetrainSim.getLeftVelocityMetersPerSecond());
@@ -242,5 +268,15 @@ public class DriveSubsystem extends SubsystemBase {
     return Commands.run(
         () -> drive.arcadeDrive(xSpeed.getAsDouble(), zRotation.getAsDouble()), driveSubsystem);
   }
+
+  public Command driveOpenLoopCmd(
+      DriveSubsystem subsystem, DoubleSupplier xSpeed, DoubleSupplier zRotation) {
+        double leftSpeed = xSpeed.getAsDouble() + zRotation.getAsDouble();
+        double rightSpeed = xSpeed.getAsDouble() +zRotation.getAsDouble();
+        return Commands.run(
+          (() -> this.runOpenLoop(leftSpeed, rightSpeed))
+        );
+  }
+  
 
 }

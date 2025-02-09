@@ -15,9 +15,15 @@ public final class Autos {
     return null;
   }
 
+  // drive straight 
+  public static final Command driveFwdOpenLoopCmd(DriveSubsystem driveSubsystem) {
+    return driveSubsystem.driveOpenLoopCmd(driveSubsystem, () -> 0.5, () -> 0.0)
+      .withTimeout(1.0);
+  }
   // Example autonomous command which drives forward for 1 second.
   public static final Command exampleAuto(DriveSubsystem driveSubsystem) {
-    return driveSubsystem.driveArcade(driveSubsystem, () -> 0.5, () -> 0.0).withTimeout(1.0);
+    return driveSubsystem.driveArcade(driveSubsystem, () -> 0.5, () -> 0.0)
+      .withTimeout(1.0);
   }
 
   public static final Command exampleAutoDriveAndRoll(DriveSubsystem driveSubsystem, RollerSubsystem rollerSubsystem) {

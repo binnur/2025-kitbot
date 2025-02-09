@@ -103,6 +103,7 @@ public class RobotContainer {
     // add additional auto modes you can add additional lines here with
     // autoChooser.addOption
     autoChooser.setDefaultOption("Do Nothing", Autos.doNothing());
+    autoChooser.addOption("Drive Forward", Autos.driveFwdOpenLoopCmd(driveSubsystem));
     autoChooser.addOption("Auto Drive", Autos.exampleAuto(driveSubsystem));
   }
 
