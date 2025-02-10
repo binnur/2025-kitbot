@@ -15,19 +15,24 @@ public final class Autos {
     return null;
   }
 
-  // drive straight 
+  // drive given voltages -- note this is cmd behaves differently than using arcadeDriveCmd in simulation
+  // use driveArcadeCmd instead
   public static final Command driveFwdOpenLoopCmd(DriveSubsystem driveSubsystem) {
     return driveSubsystem.driveOpenLoopCmd(driveSubsystem, () -> 0.5, () -> 0.0)
       .withTimeout(1.0);
   }
   // Example autonomous command which drives forward for 1 second.
-  public static final Command exampleAuto(DriveSubsystem driveSubsystem) {
-    return driveSubsystem.driveArcade(driveSubsystem, () -> 0.5, () -> 0.0)
+  public static final Command driveArcadeCmd(DriveSubsystem driveSubsystem) {
+    return driveSubsystem.driveArcadeCmd(driveSubsystem, () -> 0.5, () -> 0.0)
       .withTimeout(1.0);
   }
 
   public static final Command exampleAutoDriveAndRoll(DriveSubsystem driveSubsystem, RollerSubsystem rollerSubsystem) {
-    driveSubsystem.driveArcade(driveSubsystem, () -> 0.5, () -> 0.0).withTimeout(1.0);
+    driveSubsystem.driveArcadeCmd(driveSubsystem, () -> 0.5, () -> 0.0).withTimeout(1.0);
     return rollerSubsystem.runRoller(rollerSubsystem, ()-> RollerConstants.ROLLER_EJECT_VALUE, () -> 0);
+  }
+
+  public static final Command resetEncoders(DriveSubsystem driveSubsystem) {
+   return driveSubsystem.resetEncodersCmd();
   }
 }

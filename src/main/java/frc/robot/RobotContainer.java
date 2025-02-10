@@ -79,7 +79,7 @@ public class RobotContainer {
     // stick away from you (a negative value) drives the robot forwards (a positive
     // value)
     driveSubsystem.setDefaultCommand(
-        driveSubsystem.driveArcade(
+        driveSubsystem.driveArcadeCmd(
             driveSubsystem, () -> -driverController.getLeftY(), () -> -driverController.getRightX()));
 
     // Set the default command for the roller subsystem to the command from the
@@ -104,7 +104,8 @@ public class RobotContainer {
     // autoChooser.addOption
     autoChooser.setDefaultOption("Do Nothing", Autos.doNothing());
     autoChooser.addOption("Drive Forward", Autos.driveFwdOpenLoopCmd(driveSubsystem));
-    autoChooser.addOption("Auto Drive", Autos.exampleAuto(driveSubsystem));
+    autoChooser.addOption("Arcade Drive (no rotation @ 50%)", Autos.driveArcadeCmd(driveSubsystem));
+    autoChooser.addOption("Reset Encoders",  Autos.resetEncoders(driveSubsystem));
   }
 
   /**
