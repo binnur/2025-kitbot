@@ -4,6 +4,7 @@
 
 package frc.robot;
 
+import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -12,8 +13,8 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.OperatorConstants;
 import frc.robot.Constants.RollerConstants;
 import frc.robot.commands.Autos;
-import frc.robot.subsystems.CANDriveSubsystem;
-import frc.robot.subsystems.CANRollerSubsystem;
+import frc.robot.subsystems.DriveSubsystem;
+import frc.robot.subsystems.RollerSubsystem;
 
 /**
  * This class is where the bulk of the robot should be declared. Since
@@ -24,10 +25,13 @@ import frc.robot.subsystems.CANRollerSubsystem;
  * the robot (including
  * subsystems, commands, and trigger mappings) should be declared here.
  */
+
+ @Logged
 public class RobotContainer {
   // The robot's subsystems
-  private final CANDriveSubsystem driveSubsystem = new CANDriveSubsystem();
-  private final CANRollerSubsystem rollerSubsystem = new CANRollerSubsystem();
+  @Logged(name ="DriveSystem")
+  private final DriveSubsystem driveSubsystem = new DriveSubsystem();
+  private final RollerSubsystem rollerSubsystem = new RollerSubsystem();
 
   // The driver's controller
   private final CommandXboxController driverController = new CommandXboxController(
@@ -75,7 +79,7 @@ public class RobotContainer {
     // stick away from you (a negative value) drives the robot forwards (a positive
     // value)
     driveSubsystem.setDefaultCommand(
-        driveSubsystem.driveArcade(
+        driveSubsystem.driveArcadeCmd(
             driveSubsystem, () -> -driverController.getLeftY(), () -> -driverController.getRightX()));
 
     // Set the default command for the roller subsystem to the command from the
@@ -99,7 +103,10 @@ public class RobotContainer {
     // add additional auto modes you can add additional lines here with
     // autoChooser.addOption
     autoChooser.setDefaultOption("Do Nothing", Autos.doNothing());
-    autoChooser.addOption("Auto Drive", Autos.exampleAuto(driveSubsystem));
+    autoChooser.addOption("Drive Forward", Autos.driveFwdOpenLoopCmd(driveSubsystem));
+    autoChooser.addOption("Arcade Drive (no rotation @ 50%)", Autos.driveArcadeCmd(driveSubsystem));
+    autoChooser.addOption("Drive FWD 3 meeters", Autos.driveFwd3meters(driveSubsystem));
+    autoChooser.addOption("Reset Encoders",  Autos.resetEncoders(driveSubsystem));
   }
 
   /**
@@ -111,4 +118,5 @@ public class RobotContainer {
     // An example command will be run in autonomous
     return autoChooser.getSelected();
   }
+
 }

@@ -4,6 +4,9 @@
 
 package frc.robot;
 
+import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.math.util.Units;
+
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide
  * numerical or boolean
@@ -18,12 +21,32 @@ package frc.robot;
  */
 public final class Constants {
   public static final class DriveConstants {
-    public static final int LEFT_LEADER_ID = 1;
-    public static final int LEFT_FOLLOWER_ID = 2;
-    public static final int RIGHT_LEADER_ID = 3;
-    public static final int RIGHT_FOLLOWER_ID = 4;
+    // device IDs
+    public static final int LEFT_LEADER_ID = 3;
+    public static final int LEFT_FOLLOWER_ID = 4;
+    public static final int RIGHT_LEADER_ID = 1;
+    public static final int RIGHT_FOLLOWER_ID = 2;
 
-    public static final int DRIVE_MOTOR_CURRENT_LIMIT = 60;
+    // chassis configuration for PathPlanner or simulations
+    // FIXME: update assumed numbers for simulation from CAD
+    public static final DCMotor gearbox = DCMotor.getCIM(2);
+    public static final double gearing = 8.45;   // kitbot gearing: k8p45
+    public static final double robotMOI = 7.5;       // moment of inertia of drivetrain in its center
+    public static final double robotMassKg = 60.0;   
+    public static final double trackWidthInMeters = 0.7112; // distance between right & left wheels
+
+    public static final double wheelRadiusInches = 3.0;
+    public static final double wheelDiameterInches = 2 * wheelRadiusInches;
+    public static final double wheelCircumferenceInches = wheelDiameterInches * Math.PI;
+
+    // chassis configuration in meters
+    public static final double wheelRadiusMeters = Units.inchesToMeters(wheelRadiusInches);
+    public static final double wheelDiameterMeters = Units.inchesToMeters(wheelDiameterInches);
+    public static final double wheelCircumferenceMeters = Units.inchesToMeters(wheelCircumferenceInches);
+
+    // speed references meters/sec
+    public static final double walkingSpeedMetersPerSec = 1.0;  
+    public static final double maxSpeedMetersPerSec = 3.0;  // FIXME
   }
 
   public static final class RollerConstants {
