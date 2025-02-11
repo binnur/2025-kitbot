@@ -27,18 +27,19 @@ public final class MotorConfigs {
 
         // velocity PID configurations
         // note: these values are taken from KitBot (AdvantageKit template) and should be updated to match our robot
-        public static final double reakKp = 0.0;
+        public static final double reakKp = 0.1; // was: 0.0001
         public static final double realKd = 0.0;
-        public static final double realKs = 0.0;
-        public static final double realKv = 0.1;
+        public static final double realKi = 0.0;
+        // public static final double realKs = 0.0;
+        // public static final double realKv = 0.1;
 
         // TODO: how to apply these w/o DriveIOSim class
-        public static final double simKp = 0.05;
-        public static final double simKd = 0.0;
-        public static final double simKs = 0.0;
-        public static final double simKv = 0.227;
+        // public static final double simKp = 0.05;
+        // public static final double simKd = 0.0;
+        //public static final double simKs = 0.0;
+        //public static final double simKv = 0.227;
     
-            // close loop controller conversion factors
+        // close loop controller conversion factors
         public static final int kEncoderCountsPerRevolution = 2048 * 4;     // one rotation is 8192 ticks of the hardware encoder
         public static final double kDrivePositionConversionFactor = DriveConstants.wheelCircumferenceMeters / kEncoderCountsPerRevolution;
         public static final double kDriveVelocityConversionFactor = DriveConstants.wheelCircumferenceMeters / kEncoderCountsPerRevolution;     // RPM (per minute)
@@ -65,6 +66,7 @@ public final class MotorConfigs {
 
             // configure encoders
             // velocityConversionFactor returns rotations per min -- divide by 60.0 for rotation per seconds
+            // FIXME: in setReference() left encoder is counting backwards 
             leftLeaderConfig.encoder
                 .positionConversionFactor(DriveSubsystemConfigs.kDrivePositionConversionFactor)
                 .velocityConversionFactor(DriveSubsystemConfigs.kDriveVelocityConversionFactor / 60.0);
@@ -76,16 +78,16 @@ public final class MotorConfigs {
             leftLeaderConfig.closedLoop
                 // set PID values for position control. Closed loop slot defaults to slot 0
                 .p(DriveSubsystemConfigs.reakKp)
-                .i(0.0)
+                .i(DriveSubsystemConfigs.realKi)
                 .d(DriveSubsystemConfigs.realKd)
-                .velocityFF(0.0)        // FIXME: 1.0 / 5767 REV example
+                .velocityFF(1.0 / DriveSubsystemConfigs.kEncoderCountsPerRevolution)        // FIXME: 1.0 / 5767 REV example
                 .outputRange(-1, 1);
  
             rightLeaderConfig.closedLoop
                 .p(DriveSubsystemConfigs.reakKp)
                 .i(0.0)
                 .d(DriveSubsystemConfigs.realKd)
-                .velocityFF(0.0)        // FIXME: 1.0 / 5767 REV example
+                .velocityFF(1.0 / DriveSubsystemConfigs.kEncoderCountsPerRevolution)        // FIXME: 1.0 / 5767 REV example
                 .outputRange(-1, 1);
         }
     }

@@ -105,6 +105,7 @@ public class RobotContainer {
     autoChooser.setDefaultOption("Do Nothing", Autos.doNothing());
     autoChooser.addOption("Drive Forward", Autos.driveFwdOpenLoopCmd(driveSubsystem));
     autoChooser.addOption("Arcade Drive (no rotation @ 50%)", Autos.driveArcadeCmd(driveSubsystem));
+    autoChooser.addOption("Drive FWD 3 meeters", Autos.driveFwd3meters(driveSubsystem));
     autoChooser.addOption("Reset Encoders",  Autos.resetEncoders(driveSubsystem));
   }
 
@@ -116,10 +117,6 @@ public class RobotContainer {
   public Command getAutonomousCommand() {
     // An example command will be run in autonomous
     return autoChooser.getSelected();
-  }
-
-  public void setDriveVelocity(double setVelocity) {
-    driveSubsystem.setClosedLoopControllerVelocity(setVelocity);  
   }
 
 }
