@@ -66,12 +66,12 @@ public final class MotorConfigs {
 
             // configure encoders
             // velocityConversionFactor returns rotations per min -- divide by 60.0 for rotation per seconds
-            // FIXME: in setReference() left encoder is counting backwards 
+            // FIX?: in setReference() left encoder is counting backwards -- multiplying by -1
             leftLeaderConfig.encoder
                 .positionConversionFactor(-1*DriveSubsystemConfigs.kDrivePositionConversionFactor)
-                .velocityConversionFactor(-1*DriveSubsystemConfigs.kDriveVelocityConversionFactor / 60.0);
+                .velocityConversionFactor(DriveSubsystemConfigs.kDriveVelocityConversionFactor / 60.0);
             rightLeaderConfig.encoder
-                .positionConversionFactor(DriveSubsystemConfigs.kDrivePositionConversionFactor)
+                .positionConversionFactor(-1*DriveSubsystemConfigs.kDrivePositionConversionFactor)
                 .velocityConversionFactor(DriveSubsystemConfigs.kDriveVelocityConversionFactor / 60.0);
 
             // configure closed loop controllers for velocity -- by default written to slot 0

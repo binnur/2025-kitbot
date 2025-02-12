@@ -234,7 +234,7 @@ public class DriveSubsystem extends SubsystemBase {
       drivetrainSim.update(0.010);
 
       simDcMotorLeft.iterate(drivetrainSim.getLeftVelocityMetersPerSecond(), RobotController.getBatteryVoltage(), 0.0);
-      simDcMotorLeft.iterate(drivetrainSim.getRightVelocityMetersPerSecond(), RobotController.getBatteryVoltage(), 0.0);
+      simDcMotorRight.iterate(drivetrainSim.getRightVelocityMetersPerSecond(), RobotController.getBatteryVoltage(), 0.0);
 
       updateDriveIOInfo();
   }
@@ -301,10 +301,11 @@ public class DriveSubsystem extends SubsystemBase {
   }
 
   // Command to drive the robot with joystick inputs
+  // FIX?: passing '-' voltage to move encoders in positive direction
   public Command driveArcadeCmd(
       DriveSubsystem driveSubsystem, DoubleSupplier xSpeed, DoubleSupplier zRotation) {
     return Commands.run(
-        () -> drive.arcadeDrive(xSpeed.getAsDouble(), zRotation.getAsDouble()), driveSubsystem)
+        () -> drive.arcadeDrive(-xSpeed.getAsDouble(), -zRotation.getAsDouble()), driveSubsystem)
         .withName("Drive/CMD/driveArcade");
   }
 
