@@ -68,8 +68,8 @@ public final class MotorConfigs {
             // velocityConversionFactor returns rotations per min -- divide by 60.0 for rotation per seconds
             // FIXME: in setReference() left encoder is counting backwards 
             leftLeaderConfig.encoder
-                .positionConversionFactor(DriveSubsystemConfigs.kDrivePositionConversionFactor)
-                .velocityConversionFactor(DriveSubsystemConfigs.kDriveVelocityConversionFactor / 60.0);
+                .positionConversionFactor(-1*DriveSubsystemConfigs.kDrivePositionConversionFactor)
+                .velocityConversionFactor(-1*DriveSubsystemConfigs.kDriveVelocityConversionFactor / 60.0);
             rightLeaderConfig.encoder
                 .positionConversionFactor(DriveSubsystemConfigs.kDrivePositionConversionFactor)
                 .velocityConversionFactor(DriveSubsystemConfigs.kDriveVelocityConversionFactor / 60.0);

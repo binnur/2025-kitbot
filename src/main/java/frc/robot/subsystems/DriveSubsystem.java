@@ -65,8 +65,9 @@ public class DriveSubsystem extends SubsystemBase {
   private SparkRelativeEncoderSim simEncoderRight;
   public final DifferentialDrivetrainSim drivetrainSim;
 
-  public double actualDistanceInMetersLeft = 0.0;
-  public double actualDistanceInMetersRight = 0.0;
+  private Boolean isTrackingDistance = false;
+  private double actualDistanceInMetersLeft = 0.0;
+  private double actualDistanceInMetersRight = 0.0;
 
   @Logged(name="DriveIOInfo")
   private final DriveIOInfo ioInfo = new DriveIOInfo();
@@ -176,8 +177,10 @@ public class DriveSubsystem extends SubsystemBase {
   }
 
   private void updateActualDistancesInMeters() {
-    actualDistanceInMetersLeft += leftLeader.getEncoder().getPosition();
-    actualDistanceInMetersRight += rightLeader.getEncoder().getPosition();
+    if (isTrackingDistance) {
+      actualDistanceInMetersLeft += leftLeader.getEncoder().getPosition();
+      actualDistanceInMetersRight += rightLeader.getEncoder().getPosition();
+    }
   }
 
   @Override
@@ -268,6 +271,7 @@ public class DriveSubsystem extends SubsystemBase {
   public void stop()
   {
     runOpenLoop(0.0, 0.0);
+    isTrackingDistance = false;
   }
 
   /* Zero drive encoders
@@ -285,6 +289,7 @@ public class DriveSubsystem extends SubsystemBase {
     leftLeader.getEncoder().setPosition(0.0);
     rightLeader.getEncoder().setPosition(0.0);
 
+    isTrackingDistance = true;
     actualDistanceInMetersLeft = 0.0;
     actualDistanceInMetersRight = 0.0; 
   }  
@@ -327,7 +332,7 @@ public class DriveSubsystem extends SubsystemBase {
   public Command driveFwdInMetersCmd(DriveSubsystem driveSubsystem, DoubleSupplier distanceInMeters) {
     return Commands.startRun(
       this::resetEncodersCmd, 
-      () -> this.setVelocity(-DriveConstants.walkingSpeedMetersPerSec, DriveConstants.walkingSpeedMetersPerSec), 
+      () -> this.setVelocity(DriveConstants.walkingSpeedMetersPerSec, DriveConstants.walkingSpeedMetersPerSec), 
       driveSubsystem)
       .until(this.isAtDistance(distanceInMeters.getAsDouble()))
       .andThen(this.stopCmd())
