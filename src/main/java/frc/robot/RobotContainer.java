@@ -49,9 +49,9 @@ public class RobotContainer {
    * The container for the robot. Contains subsystems, OI devices, and commands.
    */
   public RobotContainer() {
-    configureBindings();      // add trigger-> command mappings 
+    configureBindings();     // add trigger-> command mappings 
     configureAutoChooser();   // add autonomous options
-    SmartDashboard.putData("Auto/Cmd Chooser", autoChooser);
+    SmartDashboard.putData("Autonomous Chooser", autoChooser);
     //configDashboardEntries(); // enable dashboard, which also adds autoChooser
    }
 
