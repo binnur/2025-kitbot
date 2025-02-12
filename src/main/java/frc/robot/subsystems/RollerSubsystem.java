@@ -4,11 +4,11 @@
 
 package frc.robot.subsystems;
 
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import java.util.function.DoubleSupplier;
+import edu.wpi.first.epilogue.Logged;
 
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
@@ -19,6 +19,7 @@ import frc.robot.Constants.RollerConstants;
 
 
 /** Class to run the rollers over CAN */
+@Logged
 public class RollerSubsystem extends SubsystemBase {
   // state of the roller motor
   public static enum RollerState {

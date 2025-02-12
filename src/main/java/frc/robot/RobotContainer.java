@@ -31,6 +31,7 @@ public class RobotContainer {
   // The robot's subsystems
   @Logged(name ="DriveSystem")
   private final DriveSubsystem driveSubsystem = new DriveSubsystem();
+  @Logged(name ="RollerSubsystem")
   private final RollerSubsystem rollerSubsystem = new RollerSubsystem();
 
   // The driver's controller
