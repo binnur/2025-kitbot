@@ -50,7 +50,8 @@ public class RobotContainer {
   public RobotContainer() {
     configureBindings();      // add trigger-> command mappings 
     configureAutoChooser();   // add autonomous options
-    configDashboardEntries(); // enable dashboard, which also adds autoChooser
+    SmartDashboard.putData("Auto/Cmd Chooser", autoChooser);
+    //configDashboardEntries(); // enable dashboard, which also adds autoChooser
    }
 
   /**
@@ -94,9 +95,9 @@ public class RobotContainer {
 
   }
 
-  private void configDashboardEntries() {
-    SmartDashboard.putData(autoChooser);
-  }
+  // private void configDashboardEntries() {
+  //   SmartDashboard.putData(autoChooser);
+  // }
 
   private void configureAutoChooser() {
     // Set the options to show up in the Dashboard for selecting auto modes. If you

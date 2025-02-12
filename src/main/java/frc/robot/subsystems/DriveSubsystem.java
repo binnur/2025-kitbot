@@ -23,7 +23,6 @@ import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim.KitbotGearing;
 import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim.KitbotMotor;
 import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim.KitbotWheelSize;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -154,15 +153,15 @@ public class DriveSubsystem extends SubsystemBase {
     addChild("Drive/rightLeader", rightLeader);
 
     // Add subsystem components for dashboard
-    configDashboardEntries();
+    // configDashboardEntries();
   }
 
-  private void configDashboardEntries() {
-    SmartDashboard.putData("Drive/Leader Left", leftLeader);
-    SmartDashboard.putData("Drive/Leader Right", rightLeader);
-    SmartDashboard.putData(resetEncodersCmd());
-    // SmartDashboard.putData("Drive/Field", field); 
-  }
+  // private void configDashboardEntries() {
+  //   SmartDashboard.putData("Drive/Leader Left", leftLeader);
+  //   SmartDashboard.putData("Drive/Leader Right", rightLeader);
+  //   SmartDashboard.putData(resetEncodersCmd());
+  //   // SmartDashboard.putData("Drive/Field", field); 
+  // }
 
   private void updateDriveIOInfo() {
     ioInfo.leftPositionInMeters = leftLeader.getEncoder().getPosition();

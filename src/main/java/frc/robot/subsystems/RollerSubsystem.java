@@ -50,23 +50,23 @@ public class RollerSubsystem extends SubsystemBase {
     addChild("Roller/rollerMotor", rollerMotor);
 
     // Add subsystem components for dashboard
-    configDashboardEntries();
+    //configDashboardEntries();
   }
 
-  private void configDashboardEntries() {
-    SmartDashboard.putData("Roller/rollerMotor", rollerMotor);
-    SmartDashboard.putData(runRollerForward());
-    SmartDashboard.putData(runRollerReverse());
-    SmartDashboard.putData(runRollerStop());
-    SmartDashboard.putString("Roller/rollerState", rollerState.name());
-    SmartDashboard.putNumber("Roller/speed", speed);
-  }
+  // private void configDashboardEntries() {
+  //   SmartDashboard.putData("Roller/rollerMotor", rollerMotor);
+  //   SmartDashboard.putData(runRollerForward());
+  //   SmartDashboard.putData(runRollerReverse());
+  //   SmartDashboard.putData(runRollerStop());
+  //   SmartDashboard.putString("Roller/rollerState", rollerState.name());
+  //   SmartDashboard.putNumber("Roller/speed", speed);
+  // }
 
-  private void updateDashboardEntries() {
-    //SmartDashboard.putData("Roller/rollerMotor", rollerMotor);
-    SmartDashboard.putString("Roller/rollerState", rollerState.name());
-    SmartDashboard.putNumber("Roller/speed", rollerMotor.get());
-  }
+  // private void updateDashboardEntries() {
+  //   //SmartDashboard.putData("Roller/rollerMotor", rollerMotor);
+  //   SmartDashboard.putString("Roller/rollerState", rollerState.name());
+  //   SmartDashboard.putNumber("Roller/speed", rollerMotor.get());
+  // }
 
   private void runRollerMotorForward() {
     rollerState = RollerState.FORWARD;
@@ -85,7 +85,7 @@ public class RollerSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
-    updateDashboardEntries();
+    //updateDashboardEntries();
   }
 
   // Command to run the roller with joystick inputs
