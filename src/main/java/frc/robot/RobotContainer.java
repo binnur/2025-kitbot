@@ -78,12 +78,12 @@ public class RobotContainer {
     //     .whileTrue(rollerSubsystem.runRoller(rollerSubsystem, () -> RollerConstants.ROLLER_EJECT_VALUE, () -> 0));
 
     // Set button 2 to run 'roller' forward to eject the coral
-    // Trigger rollerEjectButton = new JoystickButton(operatorController, OperatorConstants.rollerEjectButton); 
-    // rollerEjectButton.whileTrue(rollerSubsystem.runRollerForward()); 
-    new JoystickButton(operatorController, OperatorConstants.coralDeliverReef)
+    Trigger rollerEjectButton = new JoystickButton(operatorController, OperatorConstants.coralDeliverToReef); 
+    rollerEjectButton.whileTrue(rollerSubsystem.runRollerForward()); 
+    new JoystickButton(operatorController, OperatorConstants.coralDeliverToReef)
         .whileTrue(rollerSubsystem.runRollerForward());
 
-    new JoystickButton(operatorController, OperatorConstants.coralDeliverElevator)
+    new JoystickButton(operatorController, OperatorConstants.coralDeliverToElevator)
         .onTrue(rollerSubsystem.runRollerReverse())
         .onFalse(rollerSubsystem.runRollerStop());
 
