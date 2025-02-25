@@ -9,6 +9,8 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import java.util.function.DoubleSupplier;
 import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.math.filter.Debouncer;
+import edu.wpi.first.math.filter.LinearFilter;
 
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
@@ -46,6 +48,10 @@ public class RollerSubsystem extends SubsystemBase {
   // subsystem internals
   private double speed = 0.5;
   private RollerState rollerState = RollerState.STOPPED;
+
+  // Debouncer for current stall detection
+  LinearFilter currenFilter = LinearFilter.movingAverage(10);
+  private double filteredCurrent;
 
   public RollerSubsystem() {
     // Set can timeout. Because this project only sets parameters once on
@@ -106,6 +112,7 @@ public class RollerSubsystem extends SubsystemBase {
   public void periodic() {
     //updateDashboardEntries();
     updateMotorIOInfo();
+    filteredCurrent = currenFilter.calculate(rollerMotor.getOutputCurrent());
   }
 
   @Override
@@ -133,6 +140,30 @@ public class RollerSubsystem extends SubsystemBase {
   public Command runRollerStop() {
     return this.runOnce(this::stopRollerMotor)
                 .withName("Roller/CMD/runRollerStop");
+  }
+
+  // Sample command to test out ideas
+  public Command runCoralIntakeCmd() {
+    Debouncer debounce = new Debouncer(1, Debouncer.DebounceType.kRising);
+
+    // Run roller
+    return runOnce(
+     () -> {
+      // initialize
+      debounce.calculate(false);
+     })
+     .andThen(
+      // set intake to coral intaking speed
+      run( () -> {
+        runRollerMotorForward();
+      })
+        // wait until current spike is detected for more than 1s
+        .until( () -> debounce.calculate(filteredCurrent > 1 )))    // INTAKE_STALL_DETECTION is set to 1
+      .finallyDo(
+        // reduce power to holding state
+       (interrupted) -> {
+        rollerMotor.set(0.05); // hold coral speed
+       }); 
   }
 
 }
