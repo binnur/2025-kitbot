@@ -65,9 +65,6 @@ public class DriveSubsystem extends SubsystemBase {
   private SparkRelativeEncoderSim simEncoderRight;
   public final DifferentialDrivetrainSim drivetrainSim;
 
-  private Boolean isTrackingDistance = false;
-  private double actualDistanceInMetersLeft = 0.0;
-  private double actualDistanceInMetersRight = 0.0;
 
   @Logged(name="DriveIOInfo")
   private final DriveIOInfo ioInfo = new DriveIOInfo();
@@ -176,16 +173,8 @@ public class DriveSubsystem extends SubsystemBase {
     ioInfo.rightCurrentAmps = rightLeader.getOutputCurrent();  
   }
 
-  private void updateActualDistancesInMeters() {
-    if (isTrackingDistance) {
-      actualDistanceInMetersLeft += leftLeader.getEncoder().getPosition();
-      actualDistanceInMetersRight += rightLeader.getEncoder().getPosition();
-    }
-  }
-
   @Override
   public void periodic() {
-    updateActualDistancesInMeters();
     updateDriveIOInfo();
   }
 
@@ -271,7 +260,6 @@ public class DriveSubsystem extends SubsystemBase {
   public void stop()
   {
     runOpenLoop(0.0, 0.0);
-    isTrackingDistance = false;
   }
 
   /* Zero drive encoders
@@ -288,16 +276,12 @@ public class DriveSubsystem extends SubsystemBase {
     // note in simulation there is a small drift 
     leftLeader.getEncoder().setPosition(0.0);
     rightLeader.getEncoder().setPosition(0.0);
-
-    isTrackingDistance = true;
-    actualDistanceInMetersLeft = 0.0;
-    actualDistanceInMetersRight = 0.0; 
   }  
 
   // FIXME: For some reason, left motor encoder is counting backwards
   public BooleanSupplier isAtDistance(double desiredDistanceInMeters) {
-    return () -> ((Math.abs(actualDistanceInMetersLeft) >= desiredDistanceInMeters) || 
-                  (Math.abs(actualDistanceInMetersRight) >= desiredDistanceInMeters)); 
+    return () -> ((Math.abs(leftLeader.getEncoder().getPosition()) >= desiredDistanceInMeters) || 
+                  (Math.abs(rightLeader.getEncoder().getPosition()) >= desiredDistanceInMeters)); 
   }
 
   // Command to drive the robot with joystick inputs
