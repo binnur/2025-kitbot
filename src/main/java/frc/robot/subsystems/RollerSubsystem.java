@@ -15,6 +15,7 @@ import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 
 import frc.robot.MotorConfigs;
+import frc.robot.subsystems.DriveSubsystem.DriveIOInfo;
 import frc.robot.Constants.RollerConstants;
 
 
@@ -27,6 +28,16 @@ public class RollerSubsystem extends SubsystemBase {
     FORWARD,
     REVERSE
   };
+
+  @Logged(name="RollerMotorInfo")
+  private final MotorIOInfo ioInfo = new MotorIOInfo();
+  @Logged
+  public static class MotorIOInfo {
+    public double motorPositionInMeters = 0.0;
+    public double motorVelocityInMetersPerSec = 0.0;
+    public double motorAppliedVolts = 0.0;
+    public double motorCurrentAmps = 0.0;
+  }
 
   // Initialize roller SPARK
   private final SparkMaxSendable rollerMotor = 
@@ -69,6 +80,13 @@ public class RollerSubsystem extends SubsystemBase {
   //   SmartDashboard.putNumber("Roller/speed", rollerMotor.get());
   // }
 
+  private void updateMotorIOInfo() {
+    //ioInfo.leftPositionInMeters = motor.getEncoder().getPosition();
+    ioInfo.motorVelocityInMetersPerSec = rollerMotor.get();
+    ioInfo.motorAppliedVolts = rollerMotor.getAppliedOutput();
+    ioInfo.motorCurrentAmps = rollerMotor.getOutputCurrent();
+  }
+
   private void runRollerMotorForward() {
     rollerState = RollerState.FORWARD;
     rollerMotor.set(Math.abs(speed));
@@ -87,6 +105,12 @@ public class RollerSubsystem extends SubsystemBase {
   @Override
   public void periodic() {
     //updateDashboardEntries();
+    updateMotorIOInfo();
+  }
+
+  @Override
+  public void simulationPeriodic() {
+    updateMotorIOInfo();
   }
 
   // Command to run the roller with joystick inputs
