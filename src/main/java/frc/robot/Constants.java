@@ -62,6 +62,7 @@ public final class Constants {
     public static final int ELEVATOR_FOLLOWER_MOTOR_ID = 11;
     public static final int ELEVATOR_ARM_MOTOR_ID = 12;
     
+    // Elevator positions are specified in meters
     public static enum ElevatorPosition {
       BOTTOM(0.0),      // min height will trigger limit switch
       INTAKE(0.35),     // coral intake
@@ -80,7 +81,7 @@ public final class Constants {
     public static final DCMotor gearbox = DCMotor.getNEO(2);
     public static final double gearing = 12.0;    // 12:1 gearing
     public static final double massKg = Units.lbsToKilograms(20);
-    public static final double drumRadiusInMeters = Units.inchesToMeters(2) / 2.0;     // 2" (orig 1.32)
+    public static final double drumRadiusInMeters = Units.inchesToMeters(1);     // sprocket diameter is 2"
     public static final double drumCircumferenceInMeters = 2.0 * Math.PI * drumRadiusInMeters;
     public static final double encoderRotationsInMeters = drumCircumferenceInMeters / gearing;
 
@@ -97,7 +98,7 @@ public final class Constants {
 
   public static final class WpiElevatorLiftConfigs {
     // FIXME 
-    public static final double simkP = 0.1;
+    public static final double simkP = 10;
     public static final double simkI = 0.01; 
     public static final double simkD = 0.01; 
     public static final double simkS = 0.095388; 
