@@ -12,11 +12,12 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.robot.Constants.ElevatorConstants.ElevatorPosition;
 import frc.robot.Constants.OperatorConstants;
-import frc.robot.Constants.RollerConstants;
 import frc.robot.commands.Autos;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.RollerSubsystem;
+import frc.robot.subsystems.WpiElevator;
 
 /**
  * This class is where the bulk of the robot should be declared. Since
@@ -35,6 +36,11 @@ public class RobotContainer {
   private final DriveSubsystem driveSubsystem = new DriveSubsystem();
   @Logged(name ="RollerSubsystem")
   private final RollerSubsystem rollerSubsystem = new RollerSubsystem();
+  // TODO - creation of different type elevator PID controllers
+  @Logged(name ="WpiElevator")
+  private final WpiElevator elevatorSubsystem = new WpiElevator();
+  //@Logged(name ="RevElevator")
+  //private final RevElevator revElevator = new RevElevator();
 
   // The driver's controller
   private final CommandXboxController driverController = new CommandXboxController(
@@ -103,7 +109,18 @@ public class RobotContainer {
     //         rollerSubsystem,
     //         () -> operatorController.getRightTriggerAxis(),
     //         () -> operatorController.getLeftTriggerAxis()));
+    
     rollerSubsystem.setDefaultCommand(rollerSubsystem.runRollerStop());
+
+    // Setup elevator bindings & default command
+    elevatorSubsystem.setDefaultCommand(elevatorSubsystem.moveToSetPointCommand());
+    new JoystickButton(operatorController, OperatorConstants.elevatorToBottom)
+          .onTrue(elevatorSubsystem.resetPositionCommand());
+    new JoystickButton(operatorController, OperatorConstants.elevatorToCoralIntake)
+          .onTrue(elevatorSubsystem.setTargetPositionCommand(ElevatorPosition.INTAKE));
+    new JoystickButton(operatorController, OperatorConstants.elevatorToTop)
+          .onTrue(elevatorSubsystem.setTargetPositionCommand(ElevatorPosition.TOP));
+    
   }
 
   // private void configDashboardEntries() {
