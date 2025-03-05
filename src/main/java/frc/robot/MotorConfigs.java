@@ -1,10 +1,11 @@
 package frc.robot;
 
 import com.revrobotics.spark.config.SparkMaxConfig;
-
+import com.revrobotics.spark.config.SparkBaseConfig;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 
 import frc.robot.Constants.DriveConstants;
+import frc.robot.Constants.ElevatorConstants;
 import frc.robot.Constants.RollerConstants;
 
 public final class MotorConfigs {
@@ -13,7 +14,7 @@ public final class MotorConfigs {
     public static final class DriveSubsystemConfigs {
         public static final SparkMaxConfig globalConfig = new SparkMaxConfig();
         public static final SparkMaxConfig leftLeaderConfig = new SparkMaxConfig();
-        public static final  SparkMaxConfig rightLeaderConfig = new SparkMaxConfig();
+        public static final SparkMaxConfig rightLeaderConfig = new SparkMaxConfig();
         public static final SparkMaxConfig leftFollowerConfig = new SparkMaxConfig();
         public static final SparkMaxConfig rightFollowerConfig = new SparkMaxConfig();
 
@@ -106,4 +107,48 @@ public final class MotorConfigs {
                 .smartCurrentLimit(RollerConstants.ROLLER_MOTOR_CURRENT_LIMIT);
         }
     }
+
+    public static final class ElevatorSubsystemConfigs {
+        public static final SparkMaxConfig globalConfig = new SparkMaxConfig();
+        public static final SparkMaxConfig liftConfig = new SparkMaxConfig();
+        public static final SparkMaxConfig liftFollowerConfig = new SparkMaxConfig();
+        public static final SparkMaxConfig armConfig = new SparkMaxConfig();
+     
+        // motor configurations
+        public static final int currentLimit = 50;                  // per REV 2025 code
+        public static final double nominalVoltage = 12.0;
+        public static final int canBusTimeout = 250; // in milliseconds
+
+        public static final boolean motorLiftInverted = false;
+        public static final boolean motorArmInverted = false;
+
+        // close loop controller conversion factors
+        public static final int encoderCountsPerRevolution = 42 * (int)ElevatorConstants.gearing;     // one rotation is 8192 ticks of the hardware encoder
+        public static final double liftPositionConversionFactor = ElevatorConstants.drumCircumferenceInMeters / encoderCountsPerRevolution;
+        public static final double liftVelocityConversionFactor = ElevatorConstants.drumCircumferenceInMeters / encoderCountsPerRevolution;     // RPM (per minute)
+        
+
+        static {
+            globalConfig
+                .voltageCompensation(ElevatorSubsystemConfigs.nominalVoltage)
+                .smartCurrentLimit(ElevatorSubsystemConfigs.currentLimit)
+                .idleMode(IdleMode.kBrake); 
+            
+            liftConfig.apply(globalConfig);
+            liftFollowerConfig.apply(globalConfig);
+            armConfig.apply(globalConfig);
+
+            // Apply if inverted to motors
+            liftConfig.inverted(ElevatorSubsystemConfigs.motorLiftInverted);
+            armConfig.inverted(ElevatorSubsystemConfigs.motorArmInverted);
+
+            liftConfig.encoder
+                 .positionConversionFactor(liftPositionConversionFactor)
+                 .velocityConversionFactor(liftVelocityConversionFactor / 60);
+
+            // Configure closedLoop controls -- used with REVlib for control loop
+        }
+    }
+
+
 }
