@@ -131,7 +131,7 @@ public class WpiElevator extends SubsystemBase {
             0.02);
 
         //liftMotor.getEncoder().setPosition(elevatorSim.getPositionMeters());
-        simVelocity = elevatorSim.getVelocityMetersPerSecond();
+        //simVelocity = elevatorSim.getVelocityMetersPerSecond();
 
         // sim values are not updated via iterate -- liftMoter.get() returns 0
         simDcMotorLift.setVelocity(elevatorSim.getVelocityMetersPerSecond());
@@ -212,6 +212,18 @@ public class WpiElevator extends SubsystemBase {
         return run( () -> {
             feedbackVoltage = liftPidController.calculate(getPosition());
             //feedforwardVoltage = liftFFController.calculate(liftPidController.getSetpoint().velocity);
+            feedforwardVoltage = 0.0;
+            if (feedbackVoltage < 0) {
+                if (feedbackVoltage > -1) {
+                    feedforwardVoltage = -1;
+                }
+            }
+            else if (feedbackVoltage > 0) {
+                if (feedbackVoltage < 1) {
+                    feedforwardVoltage = 1;
+                }
+            }
+
             setVoltage(feedbackVoltage+feedforwardVoltage);
         }).withName("elevator.moveToCurrentGoal");
     }

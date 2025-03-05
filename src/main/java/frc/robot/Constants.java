@@ -5,6 +5,7 @@
 package frc.robot;
 
 import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.util.Units;
 
 /**
@@ -56,11 +57,69 @@ public final class Constants {
     public static final double ROLLER_EJECT_VALUE = 0.44;
   }
 
+  public static final class ElevatorConstants {
+    public static final int ELEVATOR_LEADER_MOTOR_ID = 10;
+    public static final int ELEVATOR_FOLLOWER_MOTOR_ID = 11;
+    public static final int ELEVATOR_ARM_MOTOR_ID = 12;
+    
+    public static enum ElevatorPosition {
+      BOTTOM(0.0),      // min height will trigger limit switch
+      INTAKE(0.35),     // coral intake
+      CORAL_L1(0.8),
+      CORAL_L2(1.2),
+      TOP(1.5);        // max height
+
+      public final double value;
+
+      private ElevatorPosition(double value) {
+        this.value = value;
+      }
+    }
+
+    // FIXME Elevator mechanism for simulation
+    public static final DCMotor gearbox = DCMotor.getNEO(2);
+    public static final double gearing = 12.0;    // 12:1 gearing
+    public static final double massKg = Units.lbsToKilograms(20);
+    public static final double drumRadiusInMeters = Units.inchesToMeters(2) / 2.0;     // 2" (orig 1.32)
+    public static final double drumCircumferenceInMeters = 2.0 * Math.PI * drumRadiusInMeters;
+    public static final double encoderRotationsInMeters = drumCircumferenceInMeters / gearing;
+
+    public static final double MIN_HEIGHT_METERS = 0.005;
+    public static final double MAX_HEIGHT_METERS = 1.57;
+
+    public static final double MAX_VELOCITY_METERS_PER_SECOND = 1.3; 
+    public static final double MAX_ACCELERATION_METERS_PER_SECOND_SQUARED = 3; 
+
+    public static final TrapezoidProfile.Constraints MOVEMENT_CONSTRAINTS = new TrapezoidProfile.Constraints(
+                MAX_VELOCITY_METERS_PER_SECOND, MAX_ACCELERATION_METERS_PER_SECOND_SQUARED); 
+    
+  }
+
+  public static final class WpiElevatorLiftConfigs {
+    // FIXME 
+    public static final double simkP = 0.1;
+    public static final double simkI = 0.01; 
+    public static final double simkD = 0.01; 
+    public static final double simkS = 0.095388; 
+    public static final double simkG = 0.34;      // was: 0.54402; 
+    public static final double simkV = 9.21;      // was: 7.43; 
+    public static final double simkA = 0.04;      // was: 1.0; 
+    
+    public static final double TOLERANCE = 0.05;  // tolerance @ 5cm
+  }
+
   public static final class OperatorConstants {
     public static final int DRIVER_CONTROLLER_PORT = 0;
     public static final int OPERATOR_CONTROLLER_PORT = 1;
 
     public static final int coralDeliverToReef = 2; 
     public static final int coralDeliverToElevator = 3;
+
+    public static final int elevatorToBottom = 4;
+    public static final int elevatorToCoralIntake = 5;
+    public static final int elevatorToL1 = 6;
+    public static final int elevatorToL2 = 7;
+    public static final int elevatorToTop = 8;
+    
   }
 }
