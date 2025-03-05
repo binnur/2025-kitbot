@@ -24,7 +24,10 @@ import frc.robot.Constants.ElevatorConstants.ElevatorPosition;
 import frc.robot.MotorConfigs.ElevatorSubsystemConfigs;
 import frc.robot.Constants.WpiElevatorLiftConfigs; 
 
-/* 
+/** 
+ * Elevator & arm functions -- interfaces & functionality levaraged from 2025-Ri3D RustHounds 
+ * and REV Kitbot 2025
+
  * 1. define the motors+controllers
  * 2. configure the motors+controllers
  * 3. define the expected behavior
@@ -59,7 +62,7 @@ public class WpiElevator extends SubsystemBase {
     private double feedforwardVoltage = 0;
     private double simVelocity = 0.0;
     private double desiredVoltageForSetPoint = 0.0;         // FIXME: this is temporary for logging
-    private double liftToDesiredPositionInMeters = 0.0;
+    //private double liftToDesiredPositionInMeters = 0.0;
 
     @Logged(name="ElevatorIOInfo")
     private final ElevatorIOInfo ioInfo = new ElevatorIOInfo();
@@ -78,10 +81,10 @@ public class WpiElevator extends SubsystemBase {
      * mechanism since that is the cloest physical mechanism to this)
      */
     private final ElevatorSim elevatorSim = new ElevatorSim(
-            ElevatorConstants.gearbox,
-            ElevatorConstants.gearing,
-            ElevatorConstants.massKg,
-            ElevatorConstants.drumRadiusInMeters,
+            ElevatorConstants.gearbox,                  // number of motors in the gearbox
+            ElevatorConstants.gearing,                  // elevator gearing                  
+            ElevatorConstants.massKg,                   // carriage weight
+            ElevatorConstants.drumRadiusInMeters,       // radius of drum where elevator spool is wrapped around
             ElevatorConstants.MIN_HEIGHT_METERS,
             ElevatorConstants.MAX_HEIGHT_METERS,
             true,
@@ -106,9 +109,7 @@ public class WpiElevator extends SubsystemBase {
         simDcMotorLift = new SparkMaxSim(liftMotor, dcMotorLift);
 
         // setup the elevator baseline
-        moveToBottom();        // default elevator position is at BOTTOM & reset encoders
-        setDefaultCommand(moveToCurrentGoalCommand());      // FIXME: with this, don't need to specify periodic?
-
+        moveToBottom();        // Reset elevator and arm position to its baseline
       }
 
     @Override
@@ -116,25 +117,28 @@ public class WpiElevator extends SubsystemBase {
         // FIXME
         //moveToCurrentGoalCommand();
         updateElevatorIOInfo();
+        SmartDashboard.putData(this);
     }
 
     @Override
     public void simulationPeriodic() {
         elevatorSim.setInput(simDcMotorLift.getAppliedOutput() * RobotController.getInputVoltage());
+        // rev code: m_elevatorSim.setInput(SparmMax elevatorMotor.getAppliedOutput() * RobotController.getBatteryVoltage());
         elevatorSim.update(0.020);
 
         simDcMotorLift.iterate(
+            elevatorSim.getVelocityMetersPerSecond(),       // see liftConfig conversion factors
             // FIXME velocity in rotations?
-            ((elevatorSim.getVelocityMetersPerSecond() / ElevatorConstants.drumCircumferenceInMeters)
-                    * ElevatorConstants.gearing) * 60.0,
+            // ((elevatorSim.getVelocityMetersPerSecond() / ElevatorConstants.drumCircumferenceInMeters) * ElevatorConstants.gearing) * 60.0,
             RobotController.getBatteryVoltage(),
             0.02);
+
 
         //liftMotor.getEncoder().setPosition(elevatorSim.getPositionMeters());
         //simVelocity = elevatorSim.getVelocityMetersPerSecond();
 
         // sim values are not updated via iterate -- liftMoter.get() returns 0
-        simDcMotorLift.setVelocity(elevatorSim.getVelocityMetersPerSecond());
+        //simDcMotorLift.setVelocity(elevatorSim.getVelocityMetersPerSecond());
         updateElevatorIOInfo();
     }
 
@@ -143,10 +147,14 @@ public class WpiElevator extends SubsystemBase {
         ioInfo.liftVelocityInMetersPerSec = liftMotor.get();
         ioInfo.liftAppliedVolts = liftMotor.getAppliedOutput();
         ioInfo.liftCurrentAmps = liftMotor.getOutputCurrent();
-        ioInfo.liftDesiredPositionInMeters = liftToDesiredPositionInMeters;
+        // ioInfo.liftDesiredPositionMeters with the operator control commands
+        //ioInfo.liftDesiredPositionInMeters = liftToDesiredPositionInMeters;
     }
 
-    // FIXME: resetEncoder to 0 vs. BOTTOM value of elevator?
+    /**
+     * Resets the encoders make sure hard stop is reached first
+     * TODO: move logic to 'moveToBottom?'
+     */
     private void resetEncoders() {
         liftMotor.getEncoder().setPosition(0.0);
 
@@ -154,8 +162,6 @@ public class WpiElevator extends SubsystemBase {
             simDcMotorLift.setPosition(0.0);
         }
     }
-
-    // The interfaces pulled from 2025-Ri3D RustHounds BaseLinearMechanism interface
 
     /**
      * Resets the position of the mechanism to a specific value (this should be the
@@ -174,19 +180,16 @@ public class WpiElevator extends SubsystemBase {
     /**
      * Gets the position of the mechanism. 0 should be at the lowest movement point,
      * and the position should increase as the mechanism moves up.
-     * 
-     * @return the position of the mechanism, in meters
+     * Returns the position of the mechanism in meters
      */
     public double getPosition() {
-        return liftMotor.getEncoder().getPosition();        // ioInfo.liftAtPositionInMeters
+        return liftMotor.getEncoder().getPosition();        // maps to ioInfo.liftAtPositionInMeters
     }
  
     /**
      * Explicit function to set the voltage of the motors attached to the linear
      * mechanism,
-     * should handle safeties and clamping here.
-     * 
-     * @param voltage the voltage to apply to the motors, [-12, 12]
+     * Handle safeties and clamping here.
      */
     public void setVoltage(double voltage) {
         voltage = MathUtil.clamp(voltage, -12, 12);
@@ -205,111 +208,75 @@ public class WpiElevator extends SubsystemBase {
     /**
      * Creates a command that continuously applies voltage to the motor controllers
      * to move them to the currently set goal.
-     * 
-     * @return the command
      */
-    public Command moveToCurrentGoalCommand() {
+    public Command moveToSetPointCommand() {
         return run( () -> {
             feedbackVoltage = liftPidController.calculate(getPosition());
-            //feedforwardVoltage = liftFFController.calculate(liftPidController.getSetpoint().velocity);
-            feedforwardVoltage = 0.0;
-            if (feedbackVoltage < 0) {
-                if (feedbackVoltage > -1) {
-                    feedforwardVoltage = -1;
-                }
-            }
-            else if (feedbackVoltage > 0) {
-                if (feedbackVoltage < 1) {
-                    feedforwardVoltage = 1;
-                }
-            }
+            feedforwardVoltage = liftFFController.calculate(liftPidController.getSetpoint().velocity);
+
+            // TODO: replace this code with Math.signum function
+            // feedforwardVoltage = 0.0;
+            // if (feedbackVoltage < 0) {
+            //     if (feedbackVoltage > -1) {
+            //         feedforwardVoltage = -1;
+            //     }
+            // }
+            // else if (feedbackVoltage > 0) {
+            //     if (feedbackVoltage < 1) {
+            //         feedforwardVoltage = 1;
+            //     }
+            // }
 
             setVoltage(feedbackVoltage+feedforwardVoltage);
         }).withName("elevator.moveToCurrentGoal");
     }
 
+    /*
+     * Returns if target goal is reached within tolerance specified
+     */
+    public boolean liftAtGoal() {
+        return liftPidController.atGoal();
+    }
+
     /**
-     * Creates a command that sets the current goal position to the setpoint, and
-     * cancels once the mechanism has reached that goal.
-     * 
-     * @apiNote use {@code moveToCurrentGoalCommand()} internally to avoid code
-     *          duplication
-     * 
-     * @param goalPositionSupplier a supplier of an instance of the setpoint enum
-     * @return the command
+     * Creates a command that sets target setpoints for the elevator & arm. 
+     * Command is cancelled once the mechanism has reached that goal.
+     * TODO: add arm controls
      */
     public Command moveToPositionCommand(Supplier<ElevatorPosition> goalPositionSupplier) {
-        System.out.println("Updating lift position: " + goalPositionSupplier.get().value);
         ioInfo.liftDesiredPositionInMeters = goalPositionSupplier.get().value;
-        liftToDesiredPositionInMeters = goalPositionSupplier.get().value;
+        //liftToDesiredPositionInMeters = goalPositionSupplier.get().value;
 
-        // stop motion: clear integral values & set PID controller to current position
+        // stop current motion and clear integral values
+        // specify the new goal position to the PID controller 
         liftPidController.reset(getPosition());
-        // specify the new goal position for PID controller
         liftPidController.setGoal((goalPositionSupplier.get().value));
 
+        // run the motors until target goal is reached
         return Commands.sequence(
-                            moveToCurrentGoalCommand()
+                            moveToSetPointCommand()
                                 .until( () -> liftAtGoal() ) 
                         )
                         .withTimeout(3)
                         .withName("elevator.moveToPosition");
-
-    //     return Commands.sequence(
-    //             // stop motion: clear integral values & set PID controller to current position
-    //             runOnce(() -> liftPidController.reset(getPosition())), 
-    //             // specify the new goal position for PID controller
-    //             runOnce( () -> {
-    //                 System.out.println("PID to goal position: " + goalPositionSupplier.get().value);
-    //                 liftPidController.setGoal(goalPositionSupplier.get().value);
-    //             }),
-    //             moveToCurrentGoalCommand()
-    //                     .until(() -> liftAtGoal()))
-    //         .withTimeout(3)
-    //         .withName("elevator.moveToPosition");
-     }
+    }
 
     /**
      * Creates an instantaneous command that resets the position of the linear
      * mechanism.
-     * 
-     * @return the command
      */
     public Command resetPositionCommand() {
         return runOnce(this::moveToBottom).withName("elevator.resetPosition");
     }
 
     /**
-     * Creates a command stops the motor and sets it to coast mode, to allow for
-     * moving the mechanism manually.
-     * 
-     * @apiNote use
-     *          {@code .withInterruptBehavior(InterruptionBehavior.kCancelIncoming)}
-     *          for safety
-     * @return the command
-     */
-    // FIXME should we use break or coast?
-    //public Command coastMotorsCommand();
-
-
-    public boolean liftAtGoal() {
-        // if (liftPidController.atGoal()) {
-        //     System.out.println("Elevator At Goal!!!!");
-        // } else {
-        //     System.out.println("WORKING*****");
-        // }
-        return liftPidController.atGoal();
-    }
-
-    /**
-     * Command to set the subsystem setpoint. This will set the arm and elevator to their predefined
+     * Command to set the target setpoints for arm & elevator. This will set the arm and elevator to their predefined
      * positions for the given setpoint.
-     */
-    // FIXME 
-    public Command setPositionCommand(ElevatorPosition level) {
+     */ 
+    public Command setTargetPositionCommand(ElevatorPosition level) {
         ElevatorPosition liftLevelTarget;
 
-        // ArmPosition armPosition;
+         // TODO add arm position & commands
         switch (level) {
             case INTAKE:
                 liftLevelTarget = ElevatorPosition.INTAKE;
@@ -325,10 +292,17 @@ public class WpiElevator extends SubsystemBase {
                 break;   
         }
 
-        // TODO add arm commands
         return Commands.runOnce( 
             () -> {
                 moveToPositionCommand( () -> liftLevelTarget);
             }); 
     }
+
+    /**
+     * Creates a command stops the motor and sets it to coast mode, to allow for
+     * moving the mechanism manually.
+     */
+    // FIXME should we use break or coast?
+    //public Command coastMotorsCommand();
+
 }
