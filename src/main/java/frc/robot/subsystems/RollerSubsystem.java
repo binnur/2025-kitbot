@@ -17,7 +17,6 @@ import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 
 import frc.robot.MotorConfigs;
-import frc.robot.subsystems.DriveSubsystem.DriveIOInfo;
 import frc.robot.Constants.RollerConstants;
 
 
@@ -42,6 +41,7 @@ public class RollerSubsystem extends SubsystemBase {
   }
 
   // Initialize roller SPARK
+  // FIXME
   private final SparkMaxSendable rollerMotor = 
     new SparkMaxSendable(RollerConstants.ROLLER_MOTOR_ID, MotorType.kBrushed);
 
