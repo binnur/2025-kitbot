@@ -28,18 +28,25 @@ import frc.robot.Constants.WpiElevatorLiftConfigs;
  * Elevator & arm functions -- interfaces & functionality levaraged from 2025-Ri3D RustHounds 
  * and REV Kitbot 2025
 
- * 1. define the motors+controllers
- * 2. configure the motors+controllers
- * 3. define the expected behavior
+ High-level approach
+ * 1. define & configure the motors+controllers
+ * 2. setup 'zero' baseline for lift & arm for move to controls
+ * 3. specify desired targets (lift levels, arm angles)
+ * 4. write code to track to the target goals
+ * 5. add simulation and debug the behavior until looks right :) 
  * 
- * 
- * ... add simulation
- * ... add sysID routines
+ * General logic flow
+ *  1. operator specifies a target, ex. move to 'CORAL_L1'
+ *  2. setTargetPositionCommand() decodes the target value and calls executes moveToPositionCommand()
+ *  3. moveToPosition() translates the target value to setPoint goal and executes moveToSetPointCommand() until at target
+ *  4. moveToSetPointCommand computes feedback & feedforward voltage to apply to motors
+ * notes:
+ *  -- instead of sisID, used reCalc for feedforward values (https://www.reca.lc/linear)
  */
 @Logged
 public class WpiElevator extends SubsystemBase {
     /* Elevator consists of elevatorMotor for position & armMotor that pivots for coral placement */
-    //@Logged(name="Elevator Motor")
+    @Logged(name="Lift Motor")
     private final SparkMaxSendable liftMotor = new SparkMaxSendable(ElevatorConstants.ELEVATOR_LEADER_MOTOR_ID, MotorType.kBrushless);
     private final SparkMaxSendable liftFollowerMotor = new SparkMaxSendable(ElevatorConstants.ELEVATOR_FOLLOWER_MOTOR_ID, MotorType.kBrushless);
     //@Logged(name="Arm Motor")
@@ -60,16 +67,14 @@ public class WpiElevator extends SubsystemBase {
     private double feedbackVoltage = 0;
     //@Logged(name="Lift Feedforward Control")
     private double feedforwardVoltage = 0;
-    private double simVelocity = 0.0;
-    private double desiredVoltageForSetPoint = 0.0;         // FIXME: this is temporary for logging
-    //private double liftToDesiredPositionInMeters = 0.0;
 
-    @Logged(name="ElevatorIOInfo")
+    @Logged(name="Elevator: Lift IOInfo")
     private final ElevatorIOInfo ioInfo = new ElevatorIOInfo();
     @Logged
     public static class ElevatorIOInfo {
         public double liftAtPositionInMeters = 0.0;
         public double liftDesiredPositionInMeters = ElevatorPosition.BOTTOM.value;
+        public double liftSimVelocityInMetersPerSec = 0.0;
         public double liftVelocityInMetersPerSec = 0.0;
         public double liftAppliedVolts = 0.0;
         public double liftCurrentAmps = 0.0;
@@ -93,9 +98,7 @@ public class WpiElevator extends SubsystemBase {
 
     // setup simulation support
     private DCMotor dcMotorLift = DCMotor.getNEO(2);
-    private DCMotor dcMotorArm;
     private SparkMaxSim simDcMotorLift;
-    private SparkMaxSim simDcMotorArm;
 
     public WpiElevator() {
         // Apply configurations to the motors
@@ -110,45 +113,18 @@ public class WpiElevator extends SubsystemBase {
 
         // setup the elevator baseline
         moveToBottom();        // Reset elevator and arm position to its baseline
-      }
-
-    @Override
-    public void periodic() {
-        // FIXME
-        //moveToCurrentGoalCommand();
-        updateElevatorIOInfo();
-        SmartDashboard.putData(this);
-    }
-
-    @Override
-    public void simulationPeriodic() {
-        elevatorSim.setInput(simDcMotorLift.getAppliedOutput() * RobotController.getInputVoltage());
-        // rev code: m_elevatorSim.setInput(SparmMax elevatorMotor.getAppliedOutput() * RobotController.getBatteryVoltage());
-        elevatorSim.update(0.020);
-
-        simDcMotorLift.iterate(
-            elevatorSim.getVelocityMetersPerSecond(),       // see liftConfig conversion factors
-            // FIXME velocity in rotations?
-            // ((elevatorSim.getVelocityMetersPerSecond() / ElevatorConstants.drumCircumferenceInMeters) * ElevatorConstants.gearing) * 60.0,
-            RobotController.getBatteryVoltage(),
-            0.02);
-
-
-        //liftMotor.getEncoder().setPosition(elevatorSim.getPositionMeters());
-        //simVelocity = elevatorSim.getVelocityMetersPerSecond();
-
-        // sim values are not updated via iterate -- liftMoter.get() returns 0
-        //simDcMotorLift.setVelocity(elevatorSim.getVelocityMetersPerSecond());
-        updateElevatorIOInfo();
     }
 
     private void updateElevatorIOInfo() {
         ioInfo.liftAtPositionInMeters = liftMotor.getEncoder().getPosition();
-        ioInfo.liftVelocityInMetersPerSec = liftMotor.get();
+        ioInfo.liftVelocityInMetersPerSec = liftMotor.get();     // note: does not get updated during simulation use corresponding liftSimVelocity
         ioInfo.liftAppliedVolts = liftMotor.getAppliedOutput();
         ioInfo.liftCurrentAmps = liftMotor.getOutputCurrent();
-        // ioInfo.liftDesiredPositionMeters with the operator control commands
-        //ioInfo.liftDesiredPositionInMeters = liftToDesiredPositionInMeters;
+        // note: ioInfo.liftDesiredPositionMeters updated with the operator control commands
+
+        if (Robot.isSimulation()) {
+            ioInfo.liftSimVelocityInMetersPerSec = elevatorSim.getVelocityMetersPerSecond();
+        }
     }
 
     /**
@@ -163,6 +139,32 @@ public class WpiElevator extends SubsystemBase {
         }
     }
 
+    @Override
+    public void periodic() {
+        // note: default command moveToSetPointCommand() automatically runs
+        updateElevatorIOInfo();
+        SmartDashboard.putData(this);
+    }
+
+    @Override
+    public void simulationPeriodic() {
+        // note: using liftMotor (instead of simDCMotorLift) provided better results
+        //elevatorSim.setInput(simDcMotorLift.getAppliedOutput() * RobotController.getInputVoltage());
+        elevatorSim.setInput(liftMotor.getAppliedOutput() * RobotController.getBatteryVoltage());
+        elevatorSim.update(0.020);
+
+        // note: liftVelocityInMetersPerSec values are not updated via iterate -- liftMoter.get() returns 0
+        simDcMotorLift.iterate(
+            elevatorSim.getVelocityMetersPerSecond(),       // see liftConfig conversion factors
+            RobotController.getBatteryVoltage(),
+            0.02);
+
+        // note: .iterate should reset encoder position, but this seem to simulate better
+        liftMotor.getEncoder().setPosition(elevatorSim.getPositionMeters());
+
+        updateElevatorIOInfo();
+    }
+
     /**
      * Resets the position of the mechanism to a specific value (this should be the
      * position of a hard stop).
@@ -172,7 +174,7 @@ public class WpiElevator extends SubsystemBase {
         ioInfo.liftDesiredPositionInMeters = ElevatorPosition.BOTTOM.value;
         // TODO: drive the lift motor until limit switch is triggered
         // initialize the PID controller to goal position of BOTTOM
-        resetEncoders();
+        
         liftPidController.reset(getPosition());
         liftPidController.setGoal(ElevatorPosition.BOTTOM.value);
     }
@@ -201,7 +203,6 @@ public class WpiElevator extends SubsystemBase {
         //         && positionTracker.getArmAngle() < 0) {
         //     voltage = 0;
         // }
-        desiredVoltageForSetPoint = voltage;
         liftMotor.setVoltage(voltage);
     }
 
@@ -233,6 +234,7 @@ public class WpiElevator extends SubsystemBase {
 
     /*
      * Returns if target goal is reached within tolerance specified
+     * TODO: check if triggered limit switch, i.e. moving passed min elevator position
      */
     public boolean liftAtGoal() {
         return liftPidController.atGoal();
@@ -245,7 +247,6 @@ public class WpiElevator extends SubsystemBase {
      */
     public Command moveToPositionCommand(Supplier<ElevatorPosition> goalPositionSupplier) {
         ioInfo.liftDesiredPositionInMeters = goalPositionSupplier.get().value;
-        //liftToDesiredPositionInMeters = goalPositionSupplier.get().value;
 
         // stop current motion and clear integral values
         // specify the new goal position to the PID controller 
@@ -276,7 +277,7 @@ public class WpiElevator extends SubsystemBase {
     public Command setTargetPositionCommand(ElevatorPosition level) {
         ElevatorPosition liftLevelTarget;
 
-         // TODO add arm position & commands
+         // TODO add arm position & command to setup arm
         switch (level) {
             case INTAKE:
                 liftLevelTarget = ElevatorPosition.INTAKE;
