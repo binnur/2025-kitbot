@@ -6,6 +6,7 @@ import com.revrobotics.sim.SparkMaxSim;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.MathUtil;
@@ -17,6 +18,7 @@ import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.simulation.ElevatorSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Command.InterruptionBehavior;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Robot;
@@ -325,8 +327,34 @@ public class WpiElevator extends SubsystemBase {
     /**
      * Creates a command stops the motor and sets it to coast mode, to allow for
      * moving the mechanism manually.
+     * IMPORTANT: once used, motors will be in coast until robot code restarted
      */
-    // FIXME should we use break or coast?
-    //public Command coastMotorsCommand();
+    public void configureToCoastMotors() {
+        liftMotor.stopMotor();
+        ElevatorSubsystemConfigs.liftConfig.idleMode(IdleMode.kCoast);
+        liftMotor.configure(ElevatorSubsystemConfigs.liftConfig,
+                            ResetMode.kNoResetSafeParameters, 
+                            PersistMode.kNoPersistParameters);
+    }
 
+    /**
+     * TODO test this behavior
+     */
+    public Command coastMotorsThenBreakCommand() {
+        return runOnce(liftMotor::stopMotor)
+                .andThen(() -> {
+                    ElevatorSubsystemConfigs.liftConfig.idleMode(IdleMode.kCoast);
+                    liftMotor.configure(ElevatorSubsystemConfigs.liftConfig, 
+                                        ResetMode.kNoResetSafeParameters, 
+                                        PersistMode.kNoPersistParameters);
+                })
+                .finallyDo((d) -> {
+                    ElevatorSubsystemConfigs.liftConfig.idleMode(IdleMode.kBrake);
+                    liftMotor.configure(ElevatorSubsystemConfigs.liftConfig, 
+                                        ResetMode.kNoResetSafeParameters, 
+                                        PersistMode.kNoPersistParameters);
+                    liftPidController.reset(getPosition());
+                }).withInterruptBehavior(InterruptionBehavior.kCancelIncoming)
+                .withName("elevator.coastMotorsThenBreakCommand");
+    }
 }

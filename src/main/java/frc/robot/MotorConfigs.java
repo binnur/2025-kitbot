@@ -1,6 +1,7 @@
 package frc.robot;
 
 import com.revrobotics.spark.config.SparkMaxConfig;
+import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 
 import frc.robot.Constants.DriveConstants;
@@ -140,6 +141,4 @@ public final class MotorConfigs {
             // Configure closedLoop controls -- used with REVlib for control loop
         }
     }
-
-
 }
