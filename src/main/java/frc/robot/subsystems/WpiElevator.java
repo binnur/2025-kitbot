@@ -12,6 +12,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.ElevatorFeedforward;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.simulation.ElevatorSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -45,6 +46,10 @@ import frc.robot.Constants.WpiElevatorLiftConfigs;
  */
 @Logged
 public class WpiElevator extends SubsystemBase {
+    // limit switch for bottom position of the lift
+    @Logged(name="Lift LimitSwitch")
+    DigitalInput bottomLiftLimitSwitch = new DigitalInput(ElevatorConstants.ELEVATOR_LIFT_BOTTOM_LIMIT_SWITCH);
+
     /* Elevator consists of elevatorMotor for position & armMotor that pivots for coral placement */
     @Logged(name="Lift Motor")
     private final SparkMaxSendable liftMotor = new SparkMaxSendable(ElevatorConstants.ELEVATOR_LEADER_MOTOR_ID, MotorType.kBrushless);
@@ -63,9 +68,7 @@ public class WpiElevator extends SubsystemBase {
                                                     WpiElevatorLiftConfigs.simkV,
                                                     WpiElevatorLiftConfigs.simkA);
 
-    //@Logged(name="Lift Feedback Control")
     private double feedbackVoltage = 0;
-    //@Logged(name="Lift Feedforward Control")
     private double feedforwardVoltage = 0;
 
     @Logged(name="Elevator: Lift IOInfo")
@@ -128,8 +131,16 @@ public class WpiElevator extends SubsystemBase {
     }
 
     /**
+     * Moves the lift to the bottom position of the elevator
+     */
+    private void moveToLimitSwitch() {
+        while (bottomLiftLimitSwitch.get() != true) {
+            liftMotor.setVoltage(-ElevatorConstants.FREE_SPEED_VOLTAGE);   // move elevator down
+        }
+    }
+
+    /**
      * Resets the encoders make sure hard stop is reached first
-     * TODO: move logic to 'moveToBottom?'
      */
     private void resetEncoders() {
         liftMotor.getEncoder().setPosition(0.0);
@@ -172,9 +183,12 @@ public class WpiElevator extends SubsystemBase {
      */
     public void moveToBottom() {
         ioInfo.liftDesiredPositionInMeters = ElevatorPosition.BOTTOM.value;
-        // TODO: drive the lift motor until limit switch is triggered
+
+        // drive elevator to bottom until limit switch is tripped
+        moveToLimitSwitch();
+        resetEncoders();
+
         // initialize the PID controller to goal position of BOTTOM
-        
         liftPidController.reset(getPosition());
         liftPidController.setGoal(ElevatorPosition.BOTTOM.value);
     }
@@ -195,14 +209,12 @@ public class WpiElevator extends SubsystemBase {
      */
     public void setVoltage(double voltage) {
         voltage = MathUtil.clamp(voltage, -12, 12);
-        // TODO any further voltage setup as position reaches towards top or bottom?
-        // voltage = Utils.applySoftStops(voltage, getPosition(), MIN_HEIGHT_METERS, MAX_HEIGHT_METERS);
 
-        // if (voltage < 0
-        //         && positionTracker.getElevatorPosition() < Constants.Elevator.MOTION_LIMIT
-        //         && positionTracker.getArmAngle() < 0) {
-        //     voltage = 0;
-        // }
+        if ((voltage > 0.0 && getPosition() >= ElevatorConstants.MAX_HEIGHT_METERS) ||
+            (voltage < 0.0 && getPosition() <= ElevatorConstants.MIN_HEIGHT_METERS)) {
+               voltage = 0.0;
+        }
+
         liftMotor.setVoltage(voltage);
     }
 
@@ -232,6 +244,17 @@ public class WpiElevator extends SubsystemBase {
         }).withName("elevator.moveToCurrentGoal");
     }
 
+    /**
+     * Returns if lift limit switch is triggered
+     * Resets encoders if true
+     */
+    public boolean didTriggerLiftLimitSwitch() {
+        if (bottomLiftLimitSwitch.get()) {
+            resetEncoders();
+        }
+        return bottomLiftLimitSwitch.get();
+    }
+
     /*
      * Returns if target goal is reached within tolerance specified
      * TODO: check if triggered limit switch, i.e. moving passed min elevator position
@@ -256,7 +279,7 @@ public class WpiElevator extends SubsystemBase {
         // run the motors until target goal is reached
         return Commands.sequence(
                             moveToSetPointCommand()
-                                .until( () -> liftAtGoal() ) 
+                                .until( () -> liftAtGoal() || didTriggerLiftLimitSwitch() ) 
                         )
                         .withTimeout(3)
                         .withName("elevator.moveToPosition");
