@@ -36,7 +36,11 @@ public final class Autos {
    return driveSubsystem.resetEncodersCmd();
   }
 
-  public static final Command driveFwd3meters(DriveSubsystem driveSubsystem) {
-    return driveSubsystem.driveFwdInMetersCmd(driveSubsystem, () -> 3.0);
+  public static final Command driveFwdInMeters(DriveSubsystem driveSubsystem) {
+    return driveSubsystem.driveFwdInMetersCmd(driveSubsystem, () -> 1.0);
+  }
+
+  public static final Command driveBackInMeters(DriveSubsystem driveSubsystem) {
+    return driveSubsystem.driveBackInMetersCmd(driveSubsystem, () -> -1.5);
   }
 }

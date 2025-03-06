@@ -74,11 +74,13 @@ public class DriveSubsystem extends SubsystemBase {
     public double leftVelocityInMetersPerSec = 0.0;
     public double leftAppliedVolts = 0.0;
     public double leftCurrentAmps = 0.0;
+    public double leftDesiredPositionInMeters = 0.0;
 
     public double rightPositionInMeters = 0.0;
     public double rightVelocityInMetersPerSec = 0.0;
     public double rightAppliedVolts = 0.0;
     public double rightCurrentAmps = 0.0;
+    public double rightDesiredPositionInMeters = 0.0;
 
     // TODO: add updateInputs() to this class?
   }
@@ -284,6 +286,12 @@ public class DriveSubsystem extends SubsystemBase {
                   (Math.abs(rightLeader.getEncoder().getPosition()) >= desiredDistanceInMeters)); 
   }
 
+  public BooleanSupplier isAtBackDistance(double desiredDistanceInMeters) {
+    return () -> ((leftLeader.getEncoder().getPosition() >= desiredDistanceInMeters) || 
+                  (rightLeader.getEncoder().getPosition() >= desiredDistanceInMeters)); 
+  }
+
+
   // Command to drive the robot with joystick inputs
   // FIX?: passing '-' voltage to move encoders in positive direction
   public Command driveArcadeCmd(
@@ -315,13 +323,27 @@ public class DriveSubsystem extends SubsystemBase {
   }
 
   public Command driveFwdInMetersCmd(DriveSubsystem driveSubsystem, DoubleSupplier distanceInMeters) {
+    ioInfo.leftDesiredPositionInMeters = distanceInMeters.getAsDouble();
+    ioInfo.rightDesiredPositionInMeters = distanceInMeters.getAsDouble();
     return Commands.startRun(
       this::resetEncodersCmd, 
-      () -> this.setVelocity(DriveConstants.walkingSpeedMetersPerSec, DriveConstants.walkingSpeedMetersPerSec), 
-      driveSubsystem)
-      .until(this.isAtDistance(distanceInMeters.getAsDouble()))
+      () -> this.setVelocity(DriveConstants.walkingSpeedMetersPerSec, DriveConstants.walkingSpeedMetersPerSec), driveSubsystem)
+          .until(this.isAtDistance(distanceInMeters.getAsDouble()))
       .andThen(this.stopCmd())
-      .withName("Drive/CMD/driveFwd 3 meters");
+      .withName("Drive/CMD/driveFwd in meters");
   }
+
+  public Command driveBackInMetersCmd(DriveSubsystem driveSubsystem, DoubleSupplier distanceInMeters) {
+    ioInfo.leftDesiredPositionInMeters = distanceInMeters.getAsDouble();
+    ioInfo.rightDesiredPositionInMeters = distanceInMeters.getAsDouble();
+
+    return Commands.startRun(
+      this::resetEncodersCmd, 
+      () -> this.setVelocity(-DriveConstants.maxSpeedMetersPerSec, -DriveConstants.maxSpeedMetersPerSec), driveSubsystem)
+          .until(this.isAtBackDistance(distanceInMeters.getAsDouble()))
+      .andThen(this.stopCmd())
+      .withName("Drive/CMD/driveBack in meters");
+  }
+
   
 }
