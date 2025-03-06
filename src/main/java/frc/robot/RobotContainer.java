@@ -114,8 +114,10 @@ public class RobotContainer {
 
     // Setup elevator bindings & default command
     elevatorSubsystem.setDefaultCommand(elevatorSubsystem.moveToSetPointCommand());
-    new JoystickButton(operatorController, OperatorConstants.elevatorToBottom)
+    new JoystickButton(operatorController, OperatorConstants.resetLiftToBottomPosition)
           .onTrue(elevatorSubsystem.resetPositionCommand());
+    new JoystickButton(operatorController, OperatorConstants.elevatorToBottom)
+          .onTrue(elevatorSubsystem.setTargetPositionCommand(ElevatorPosition.BOTTOM));
     new JoystickButton(operatorController, OperatorConstants.elevatorToCoralIntake)
           .onTrue(elevatorSubsystem.setTargetPositionCommand(ElevatorPosition.INTAKE));
     new JoystickButton(operatorController, OperatorConstants.elevatorToTop)

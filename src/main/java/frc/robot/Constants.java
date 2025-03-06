@@ -29,7 +29,6 @@ public final class Constants {
     public static final int RIGHT_FOLLOWER_ID = 2;
 
     // chassis configuration for PathPlanner or simulations
-    // FIXME: update assumed numbers for simulation from CAD
     public static final DCMotor gearbox = DCMotor.getCIM(2);
     public static final double gearing = 8.45;   // kitbot gearing: k8p45
     public static final double robotMOI = 7.5;       // moment of inertia of drivetrain in its center
@@ -46,8 +45,8 @@ public final class Constants {
     public static final double wheelCircumferenceMeters = Units.inchesToMeters(wheelCircumferenceInches);
 
     // speed references meters/sec
-    public static final double walkingSpeedMetersPerSec = 1.0;  
-    public static final double maxSpeedMetersPerSec = 3.0;  // FIXME
+    public static final double walkingSpeedMetersPerSec = 1.0;
+    public static final double maxSpeedMetersPerSec = 3.0;
   }
 
   public static final class RollerConstants {
@@ -61,6 +60,8 @@ public final class Constants {
     public static final int ELEVATOR_LEADER_MOTOR_ID = 10;
     public static final int ELEVATOR_FOLLOWER_MOTOR_ID = 11;
     public static final int ELEVATOR_ARM_MOTOR_ID = 12;
+
+    public static final int ELEVATOR_LIFT_BOTTOM_LIMIT_SWITCH = 1;       // hard stop for bottom position of lift
     
     // Elevator positions are specified in meters
     public static enum ElevatorPosition {
@@ -77,7 +78,7 @@ public final class Constants {
       }
     }
 
-    // FIXME Elevator mechanism for simulation
+    // Elevator mechanism for simulation
     public static final DCMotor gearbox = DCMotor.getNEO(2);
     public static final double gearing = 12.0;    // 12:1 gearing
     public static final double massKg = Units.lbsToKilograms(20);
@@ -88,6 +89,7 @@ public final class Constants {
     public static final double MIN_HEIGHT_METERS = 0.005;
     public static final double MAX_HEIGHT_METERS = 1.57;
 
+    public static final double FREE_SPEED_VOLTAGE = 1; 
     public static final double MAX_VELOCITY_METERS_PER_SECOND = 1.3; 
     public static final double MAX_ACCELERATION_METERS_PER_SECOND_SQUARED = 3; 
 
@@ -97,14 +99,14 @@ public final class Constants {
   }
 
   public static final class WpiElevatorLiftConfigs {
-    // FIXME 
+    // Linear mechanism values from:  ReCalc (https://www.reca.lc/linear)
     public static final double simkP = 10;
-    public static final double simkI = 0.01; 
-    public static final double simkD = 0.01; 
-    public static final double simkS = 0.095388; 
-    public static final double simkG = 0.34;      // was: 0.54402; 
-    public static final double simkV = 9.21;      // was: 7.43; 
-    public static final double simkA = 0.04;      // was: 1.0; 
+    public static final double simkI = 0.01;
+    public static final double simkD = 0.01;
+    public static final double simkS = 0.095388;
+    public static final double simkG = 0.34;
+    public static final double simkV = 9.21;
+    public static final double simkA = 0.04;
     
     public static final double TOLERANCE = 0.05;  // tolerance @ 5cm
   }
@@ -121,6 +123,7 @@ public final class Constants {
     public static final int elevatorToL1 = 6;
     public static final int elevatorToL2 = 7;
     public static final int elevatorToTop = 8;
+    public static final int resetLiftToBottomPosition = 9;
     
   }
 }

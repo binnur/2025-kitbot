@@ -1,7 +1,6 @@
 package frc.robot;
 
 import com.revrobotics.spark.config.SparkMaxConfig;
-import com.revrobotics.spark.config.SparkBaseConfig;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 
 import frc.robot.Constants.DriveConstants;
@@ -28,17 +27,9 @@ public final class MotorConfigs {
 
         // velocity PID configurations
         // note: these values are taken from KitBot (AdvantageKit template) and should be updated to match our robot
-        public static final double reakKp = 0.1; // was: 0.0001
-        public static final double realKd = 0.0;
-        public static final double realKi = 0.0;
-        // public static final double realKs = 0.0;
-        // public static final double realKv = 0.1;
-
-        // TODO: how to apply these w/o DriveIOSim class
-        // public static final double simKp = 0.05;
-        // public static final double simKd = 0.0;
-        //public static final double simKs = 0.0;
-        //public static final double simKv = 0.227;
+        public static final double simKp = 0.1; // was: 0.0001
+        public static final double simKd = 0.0;
+        public static final double simKi = 0.0;
     
         // close loop controller conversion factors
         public static final int kEncoderCountsPerRevolution = 2048 * 4;     // one rotation is 8192 ticks of the hardware encoder
@@ -78,17 +69,17 @@ public final class MotorConfigs {
             // configure closed loop controllers for velocity -- by default written to slot 0
             leftLeaderConfig.closedLoop
                 // set PID values for position control. Closed loop slot defaults to slot 0
-                .p(DriveSubsystemConfigs.reakKp)
-                .i(DriveSubsystemConfigs.realKi)
-                .d(DriveSubsystemConfigs.realKd)
-                .velocityFF(1.0 / DriveSubsystemConfigs.kEncoderCountsPerRevolution)        // FIXME: 1.0 / 5767 REV example
+                .p(DriveSubsystemConfigs.simKp)
+                .i(DriveSubsystemConfigs.simKi)
+                .d(DriveSubsystemConfigs.simKd)
+                .velocityFF(1.0 / DriveSubsystemConfigs.kEncoderCountsPerRevolution) 
                 .outputRange(-1, 1);
  
             rightLeaderConfig.closedLoop
-                .p(DriveSubsystemConfigs.reakKp)
+                .p(DriveSubsystemConfigs.simKp)
                 .i(0.0)
-                .d(DriveSubsystemConfigs.realKd)
-                .velocityFF(1.0 / DriveSubsystemConfigs.kEncoderCountsPerRevolution)        // FIXME: 1.0 / 5767 REV example
+                .d(DriveSubsystemConfigs.simKd)
+                .velocityFF(1.0 / DriveSubsystemConfigs.kEncoderCountsPerRevolution)
                 .outputRange(-1, 1);
         }
     }
@@ -144,7 +135,7 @@ public final class MotorConfigs {
 
             liftConfig.encoder
                  .positionConversionFactor(liftPositionConversionFactor)
-                 .velocityConversionFactor(liftVelocityConversionFactor / 60);
+                 .velocityConversionFactor(liftVelocityConversionFactor / 60);      // RPS
 
             // Configure closedLoop controls -- used with REVlib for control loop
         }
