@@ -24,7 +24,7 @@ public final class MotorConfigs {
         public static final int canBusTimeout = 250; // in milliseconds
 
         public static final boolean leftInverted = false;
-        public static final boolean rightInverted = true;
+        public static final boolean rightInverted = false;
 
         // velocity PID configurations
         // note: these values are taken from KitBot (AdvantageKit template) and should be updated to match our robot
@@ -59,12 +59,12 @@ public final class MotorConfigs {
 
             // configure encoders
             // velocityConversionFactor returns rotations per min -- divide by 60.0 for rotation per seconds
-            // FIX?: in setReference() left encoder is counting backwards -- multiplying by -1
+            // IMPORTANT: multiplying by -1 seems to fix the encoder turning differently than motor, i.e. counting backwards
             leftLeaderConfig.encoder
-                .positionConversionFactor(-1*DriveSubsystemConfigs.kDrivePositionConversionFactor)
+                .positionConversionFactor(DriveSubsystemConfigs.kDrivePositionConversionFactor)
                 .velocityConversionFactor(DriveSubsystemConfigs.kDriveVelocityConversionFactor / 60.0);
             rightLeaderConfig.encoder
-                .positionConversionFactor(-1*DriveSubsystemConfigs.kDrivePositionConversionFactor)
+                .positionConversionFactor(DriveSubsystemConfigs.kDrivePositionConversionFactor)
                 .velocityConversionFactor(DriveSubsystemConfigs.kDriveVelocityConversionFactor / 60.0);
 
             // configure closed loop controllers for velocity -- by default written to slot 0
