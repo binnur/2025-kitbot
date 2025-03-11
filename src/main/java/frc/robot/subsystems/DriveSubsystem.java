@@ -8,7 +8,6 @@ import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 
 import com.revrobotics.sim.SparkMaxSim;
-import com.revrobotics.sim.SparkRelativeEncoderSim;
 import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.SparkBase.PersistMode;
@@ -61,8 +60,6 @@ public class DriveSubsystem extends SubsystemBase {
   private DCMotor dcMotorRight;
   private SparkMaxSim simDcMotorLeft;
   private SparkMaxSim simDcMotorRight;
-  private SparkRelativeEncoderSim simEncoderLeft;
-  private SparkRelativeEncoderSim simEncoderRight;
   public final DifferentialDrivetrainSim drivetrainSim;
 
 
@@ -114,7 +111,7 @@ public class DriveSubsystem extends SubsystemBase {
      // construct the differential drive 
      drive = new DifferentialDrive(leftLeader, rightLeader);
 
-    // construct simulation -- important, adding noise distorts the readings and simulation becomes jittery
+    // IMPORTANT: important, adding noise distorts the readings and simulation becomes jittery
     // drivetrainSim = new DifferentialDrivetrainSim(
     //   DriveConstants.gearbox,
     //   DriveConstants.gearing,
@@ -138,12 +135,10 @@ public class DriveSubsystem extends SubsystemBase {
       null
     );
 
-    dcMotorLeft = DCMotor.getCIM(1);
-    dcMotorRight = DCMotor.getCIM(1);
+    dcMotorLeft = DCMotor.getCIM(2);
+    dcMotorRight = DCMotor.getCIM(2);
     simDcMotorLeft = new SparkMaxSim(leftLeader, dcMotorLeft);
     simDcMotorRight = new SparkMaxSim(rightLeader, dcMotorRight);
-    simEncoderLeft = new SparkRelativeEncoderSim(leftLeader);    
-    simEncoderRight = new SparkRelativeEncoderSim(rightLeader); 
 
     // reset encoder positions
     resetEncoders();
@@ -186,10 +181,7 @@ public class DriveSubsystem extends SubsystemBase {
     drivetrainSim.setInputs(
       simDcMotorLeft.getAppliedOutput() * RobotController.getInputVoltage(),    // was: leftLeader.get() * RobotController.getInputVoltage(),
       simDcMotorRight.getAppliedOutput() * RobotController.getInputVoltage());  // was: rightLeader.get() * RobotController.getInputVoltage());
-    
-    // System.out.printf("in simulationPeriodic sim velocity%.2f %.2f\n", drivetrainSim.getLeftVelocityMetersPerSecond(), drivetrainSim.getRightVelocityMetersPerSecond());
-    // System.out.printf("in simulationPeriodic real leaders velocity%.2f %.2f\n", leftLeader.get(), rightLeader.get());
-
+        
     // 2.  update drivetrain state 
     drivetrainSim.update(0.020);
     
@@ -204,35 +196,10 @@ public class DriveSubsystem extends SubsystemBase {
       RobotController.getBatteryVoltage(),
       0.020
     );
-
-    // testing w/ arcadeDrive() has getAppliedOutput for real & sim motors -- identical values to each other
-    // System.out.printf("in periodic real leaders applied output %.2f %.2f\n", leftLeader.getAppliedOutput(), rightLeader.getAppliedOutput());
-    // System.out.printf("in periodic simDCMotor getOutput %.2f %.2f\n", simDcMotorLeft.getAppliedOutput(), simDcMotorRight.getAppliedOutput());
-
-    //updateActualDistancesInMeters(); 
-    //updateDriveIOInfo();
   }
 
-  /* 
-   * Quick adjustment to the simulated values to update system state
-   */
-  private void updateSimState(double leftVolts, double rightVolts) {
-      // System.out.printf("1.in updateSimState %.2f %.2f\n", leftVolts, rightVolts);
-      // stop the simulated drive & iterate over the simulated motors
-      drivetrainSim.setInputs(
-        leftVolts * RobotController.getInputVoltage(),
-        rightVolts * RobotController.getInputVoltage());
-      drivetrainSim.update(0.010);
-
-      simDcMotorLeft.iterate(drivetrainSim.getLeftVelocityMetersPerSecond(), RobotController.getBatteryVoltage(), 0.0);
-      simDcMotorRight.iterate(drivetrainSim.getRightVelocityMetersPerSecond(), RobotController.getBatteryVoltage(), 0.0);
-
-      updateDriveIOInfo();
-  }
-
-  /* 
+  /** 
    * Set velocity for left & right motors
-   * FIXME: in simulation runOpenLoop behaves differently from drive.arcadeDrive(). The velocities differs greatly
    * Note: use driveArcadeCmd() for running open loop
    */
   // set velocity for left & right motors
@@ -240,23 +207,14 @@ public class DriveSubsystem extends SubsystemBase {
     // setVoltage behaves differently in simulation from drive.arcade() 
     leftLeader.setVoltage(leftVolts);
     rightLeader.setVoltage(rightVolts);
-
-    if (Robot.isSimulation()) {
-      //System.out.printf("in runOpenLoop %.2f %.2f\n", leftVolts, rightVolts);
-      updateSimState(leftVolts, rightVolts);
-    }
   }
 
-  /*
+  /**
    * Closed-loop velocity control 
    */
   public void setVelocity(double leftVelocity, double rightVelocity) {
     leftController.setReference(leftVelocity, ControlType.kVelocity);
     rightController.setReference(rightVelocity, ControlType.kVelocity);  
-    
-    if (Robot.isSimulation()) {
-      updateSimState(simDcMotorLeft.getAppliedOutput(), simDcMotorRight.getAppliedOutput());
-    }
   }
 
   public void stop()
@@ -268,47 +226,55 @@ public class DriveSubsystem extends SubsystemBase {
    * Note: when running in simulation, need to stop the drivetrain & iterate on simulated motors
    */
   public void resetEncoders() {
-    if (Robot.isSimulation()) {
-      // update simulated drive 
-      updateSimState(drivetrainSim.getLeftVelocityMetersPerSecond(), drivetrainSim.getRightVelocityMetersPerSecond());
-      // reset the simulated encoder 
-      simDcMotorLeft.setPosition(0.0);
-      simDcMotorRight.setPosition(0.0);
-    } 
     // note in simulation there is a small drift 
     leftLeader.getEncoder().setPosition(0.0);
     rightLeader.getEncoder().setPosition(0.0);
+
+    // reset the simulated encoder -- seems to require it for simulation vs. resetting from leader.getEncoder().setPosition()
+    if (Robot.isSimulation()) {
+      simDcMotorLeft.setPosition(0.0);
+      simDcMotorRight.setPosition(0.0);
+    } 
   }  
 
-  // FIXME: For some reason, left motor encoder is counting backwards
+  /**
+   * Determines if given encoders moved at desired distance
+   */
   public BooleanSupplier isAtDistance(double desiredDistanceInMeters) {
-    return () -> ((Math.abs(leftLeader.getEncoder().getPosition()) >= desiredDistanceInMeters) || 
-                  (Math.abs(rightLeader.getEncoder().getPosition()) >= desiredDistanceInMeters)); 
-  }
+    return () -> {
+        double currentLeftPosition = leftLeader.getEncoder().getPosition();
+        double currentRightPosition = rightLeader.getEncoder().getPosition();
+        
+        // Use absolute difference to handle both positive and negative distances
+        double leftDifference = Math.abs(currentLeftPosition - desiredDistanceInMeters);
+        double rightDifference = Math.abs(currentRightPosition - desiredDistanceInMeters);
+        
+        // Define a small tolerance for position accuracy
+        double positionTolerance = 0.05; // 5 cm tolerance -- adjust as needed
+        
+        // Return true if either encoder is within tolerance of the desired position
+        return (leftDifference <= positionTolerance) || (rightDifference <= positionTolerance);
+    };
+}
 
-  public BooleanSupplier isAtBackDistance(double desiredDistanceInMeters) {
-    return () -> ((leftLeader.getEncoder().getPosition() >= desiredDistanceInMeters) || 
-                  (rightLeader.getEncoder().getPosition() >= desiredDistanceInMeters)); 
-  }
-
-
-  // Command to drive the robot with joystick inputs
-  // FIX?: passing '-' voltage to move encoders in positive direction
+  /** Command to drive the robot with joystick inputs */
   public Command driveArcadeCmd(
       DriveSubsystem driveSubsystem, DoubleSupplier xSpeed, DoubleSupplier zRotation) {
     return Commands.run(
-        () -> drive.arcadeDrive(-xSpeed.getAsDouble(), -zRotation.getAsDouble()), driveSubsystem)
+        // forward values are positive (was -xSpeed and -zRotation)
+        () -> drive.arcadeDrive(xSpeed.getAsDouble(), zRotation.getAsDouble()), driveSubsystem)
         .withName("Drive/CMD/driveArcade");
   }
 
-  // FIXME: In simulation this command in provided voltages behave differently than driveArcadeCmd
+  /** Emulates driveArcadeCmd using setVoltage for motors */
   public Command driveOpenLoopCmd(
       DriveSubsystem subsystem, DoubleSupplier xSpeed, DoubleSupplier zRotation) {
-        double leftVolts = xSpeed.getAsDouble() + zRotation.getAsDouble();
-        double rightVolts = xSpeed.getAsDouble() +zRotation.getAsDouble();
-        return Commands.run(
-          (() -> this.runOpenLoop(leftVolts, rightVolts)))
-          .withName("Drive/CMD/runOpenLoop FIXME!");
+        return Commands.run( () -> {
+            double leftVolts = xSpeed.getAsDouble() + zRotation.getAsDouble();
+            double rightVolts = xSpeed.getAsDouble() +zRotation.getAsDouble();
+            this.runOpenLoop(leftVolts, rightVolts);
+          })
+          .withName("Drive/CMD/runOpenLoop");
   }
 
   public Command stopCmd() {
@@ -322,28 +288,50 @@ public class DriveSubsystem extends SubsystemBase {
       .withName("Drive/CMD/Reset Encoders");
   }
 
+  /** 
+   * Drives forward for specified distance
+   */
   public Command driveFwdInMetersCmd(DriveSubsystem driveSubsystem, DoubleSupplier distanceInMeters) {
-    ioInfo.leftDesiredPositionInMeters = distanceInMeters.getAsDouble();
-    ioInfo.rightDesiredPositionInMeters = distanceInMeters.getAsDouble();
-    return Commands.startRun(
-      this::resetEncodersCmd, 
-      () -> this.setVelocity(DriveConstants.walkingSpeedMetersPerSec, DriveConstants.walkingSpeedMetersPerSec), driveSubsystem)
+    // note: this is commented section is WRONG! values are captured during command creation and NOT updated dynamically at run time
+    // whoever the latest autoCommand is will override the desired positions
+    // ioInfo.leftDesiredPositionInMeters = 0.5; // distanceInMeters.getAsDouble();
+    // ioInfo.rightDesiredPositionInMeters = 0.5; // distanceInMeters.getAsDouble();
+
+    return Commands.sequence(
+      Commands.runOnce( () -> {
+          // Initial setup when command starts
+          this.resetEncodersCmd();
+          ioInfo.leftDesiredPositionInMeters = distanceInMeters.getAsDouble();
+          ioInfo.rightDesiredPositionInMeters = distanceInMeters.getAsDouble();
+      }),
+      Commands.run( () -> {
+          this.setVelocity(DriveConstants.walkingSpeedMetersPerSec, DriveConstants.walkingSpeedMetersPerSec);
+      }, driveSubsystem)
           .until(this.isAtDistance(distanceInMeters.getAsDouble()))
-      .andThen(this.stopCmd())
-      .withName("Drive/CMD/driveFwd in meters");
+          .andThen(this.stopCmd())
+          .withName("Drive/CMD/driveBack in meters")
+    );
   }
 
+  /**
+   * Drive backwards for specified distance
+   */
   public Command driveBackInMetersCmd(DriveSubsystem driveSubsystem, DoubleSupplier distanceInMeters) {
-    ioInfo.leftDesiredPositionInMeters = distanceInMeters.getAsDouble();
-    ioInfo.rightDesiredPositionInMeters = distanceInMeters.getAsDouble();
-
-    return Commands.startRun(
-      this::resetEncodersCmd, 
-      () -> this.setVelocity(-DriveConstants.maxSpeedMetersPerSec, -DriveConstants.maxSpeedMetersPerSec), driveSubsystem)
-          .until(this.isAtBackDistance(distanceInMeters.getAsDouble()))
-      .andThen(this.stopCmd())
-      .withName("Drive/CMD/driveBack in meters");
-  }
-
-  
+    return Commands.sequence(
+      Commands.runOnce(() -> {
+          // Initial setup when command starts
+          this.resetEncodersCmd();
+          // Set the initial desired position -- 
+          ioInfo.leftDesiredPositionInMeters = distanceInMeters.getAsDouble();
+          ioInfo.rightDesiredPositionInMeters = distanceInMeters.getAsDouble();
+      }),
+      Commands.run( () -> {
+          // Set velocity -- passing - to left & + to right, matching inverted motor configuration
+          this.setVelocity(-DriveConstants.maxSpeedMetersPerSec, -DriveConstants.maxSpeedMetersPerSec);
+      }, driveSubsystem)
+          .until(this.isAtDistance(distanceInMeters.getAsDouble()))
+          .andThen(this.stopCmd())
+          .withName("Drive/CMD/driveBack in meters")
+    );
+  } 
 }
