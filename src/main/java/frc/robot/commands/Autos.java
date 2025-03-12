@@ -7,6 +7,7 @@ package frc.robot.commands;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.RollerSubsystem;
+import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.RollerConstants;
 
 public final class Autos {
@@ -18,7 +19,7 @@ public final class Autos {
   // drive given voltages -- note this is cmd behaves differently than using arcadeDriveCmd in simulation
   // use driveArcadeCmd instead
   public static final Command driveFwdOpenLoopCmd(DriveSubsystem driveSubsystem) {
-    return driveSubsystem.driveOpenLoopCmd(driveSubsystem, () -> 0.5, () -> 0.0)
+    return driveSubsystem.driveOpenLoopCmd(driveSubsystem, () -> 6.0, () -> 0.0)
       .withTimeout(1.0);
   }
   // Example autonomous command which drives forward for 1 second.
@@ -37,10 +38,10 @@ public final class Autos {
   }
 
   public static final Command driveFwdInMeters(DriveSubsystem driveSubsystem) {
-    return driveSubsystem.driveFwdInMetersCmd(driveSubsystem, () -> 1.0);
+    return driveSubsystem.driveInMetersCmd(driveSubsystem, () -> 1.0);
   }
 
   public static final Command driveBackInMeters(DriveSubsystem driveSubsystem) {
-    return driveSubsystem.driveBackInMetersCmd(driveSubsystem, () -> -1.5);
+    return driveSubsystem.driveInMetersCmd(driveSubsystem, () -> -1.5);
   }
 }
