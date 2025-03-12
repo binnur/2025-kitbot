@@ -78,8 +78,6 @@ public class DriveSubsystem extends SubsystemBase {
     public double rightAppliedVolts = 0.0;
     public double rightCurrentAmps = 0.0;
     public double rightDesiredPositionInMeters = 0.0;
-
-    // TODO: add updateInputs() to this class?
   }
 
   public DriveSubsystem() {
@@ -135,6 +133,7 @@ public class DriveSubsystem extends SubsystemBase {
       null
     );
 
+    // Note: follower motors are not simulated correctly
     dcMotorLeft = DCMotor.getCIM(2);
     dcMotorRight = DCMotor.getCIM(2);
     simDcMotorLeft = new SparkMaxSim(leftLeader, dcMotorLeft);
@@ -200,11 +199,9 @@ public class DriveSubsystem extends SubsystemBase {
 
   /** 
    * Set velocity for left & right motors
-   * Note: use driveArcadeCmd() for running open loop
    */
   // set velocity for left & right motors
   public void runOpenLoop(double leftVolts, double rightVolts) {
-    // setVoltage behaves differently in simulation from drive.arcade() 
     leftLeader.setVoltage(leftVolts);
     rightLeader.setVoltage(rightVolts);
   }
@@ -261,20 +258,23 @@ public class DriveSubsystem extends SubsystemBase {
   public Command driveArcadeCmd(
       DriveSubsystem driveSubsystem, DoubleSupplier xSpeed, DoubleSupplier zRotation) {
     return Commands.run(
-        // forward values are positive (was -xSpeed and -zRotation)
+        // forward values are positive
         () -> drive.arcadeDrive(xSpeed.getAsDouble(), zRotation.getAsDouble()), driveSubsystem)
-        .withName("Drive/CMD/driveArcade");
+        .withName("Drive/CMD/driveArcadeCmd");
   }
 
   /** Emulates driveArcadeCmd using setVoltage for motors */
   public Command driveOpenLoopCmd(
       DriveSubsystem subsystem, DoubleSupplier xSpeed, DoubleSupplier zRotation) {
-        return Commands.run( () -> {
-            double leftVolts = xSpeed.getAsDouble() + zRotation.getAsDouble();
-            double rightVolts = xSpeed.getAsDouble() +zRotation.getAsDouble();
-            this.runOpenLoop(leftVolts, rightVolts);
-          })
-          .withName("Drive/CMD/runOpenLoop");
+        // run the motors until interrupted
+        return Commands.runEnd( 
+          // setVoltage
+          () -> runOpenLoop(xSpeed.getAsDouble() - zRotation.getAsDouble(), 
+                            xSpeed.getAsDouble() +zRotation.getAsDouble()),
+          // stop
+          () -> this.stop(),
+          subsystem)
+          .withName("Drive/CMD/driveOpenLoopCmd");
   }
 
   public Command stopCmd() {
@@ -285,38 +285,15 @@ public class DriveSubsystem extends SubsystemBase {
 
   public Command resetEncodersCmd() {
     return this.runOnce(this::resetEncoders)
-      .withName("Drive/CMD/Reset Encoders");
-  }
-
-  /** 
-   * Drives forward for specified distance
-   */
-  public Command driveFwdInMetersCmd(DriveSubsystem driveSubsystem, DoubleSupplier distanceInMeters) {
-    // note: this is commented section is WRONG! values are captured during command creation and NOT updated dynamically at run time
-    // whoever the latest autoCommand is will override the desired positions
-    // ioInfo.leftDesiredPositionInMeters = 0.5; // distanceInMeters.getAsDouble();
-    // ioInfo.rightDesiredPositionInMeters = 0.5; // distanceInMeters.getAsDouble();
-
-    return Commands.sequence(
-      Commands.runOnce( () -> {
-          // Initial setup when command starts
-          this.resetEncodersCmd();
-          ioInfo.leftDesiredPositionInMeters = distanceInMeters.getAsDouble();
-          ioInfo.rightDesiredPositionInMeters = distanceInMeters.getAsDouble();
-      }),
-      Commands.run( () -> {
-          this.setVelocity(DriveConstants.walkingSpeedMetersPerSec, DriveConstants.walkingSpeedMetersPerSec);
-      }, driveSubsystem)
-          .until(this.isAtDistance(distanceInMeters.getAsDouble()))
-          .andThen(this.stopCmd())
-          .withName("Drive/CMD/driveBack in meters")
-    );
+      .withName("Drive/CMD/resetEncodersCmd");
   }
 
   /**
-   * Drive backwards for specified distance
+   * Drive given meters
+   *    - Positive distance: Drive forward
+   *    - Negative distance: Drive backwards
    */
-  public Command driveBackInMetersCmd(DriveSubsystem driveSubsystem, DoubleSupplier distanceInMeters) {
+  public Command driveInMetersCmd(DriveSubsystem driveSubsystem, DoubleSupplier distanceInMeters) {
     return Commands.sequence(
       Commands.runOnce(() -> {
           // Initial setup when command starts
@@ -326,12 +303,17 @@ public class DriveSubsystem extends SubsystemBase {
           ioInfo.rightDesiredPositionInMeters = distanceInMeters.getAsDouble();
       }),
       Commands.run( () -> {
-          // Set velocity -- passing - to left & + to right, matching inverted motor configuration
-          this.setVelocity(-DriveConstants.maxSpeedMetersPerSec, -DriveConstants.maxSpeedMetersPerSec);
+          // Determine drive direction
+          if (distanceInMeters.getAsDouble() < 0) {
+            this.setVelocity(-DriveConstants.maxSpeedMetersPerSec, -DriveConstants.maxSpeedMetersPerSec);
+          } else {
+            this.setVelocity(DriveConstants.maxSpeedMetersPerSec, DriveConstants.maxSpeedMetersPerSec);
+          }
       }, driveSubsystem)
           .until(this.isAtDistance(distanceInMeters.getAsDouble()))
           .andThen(this.stopCmd())
-          .withName("Drive/CMD/driveBack in meters")
+          .withName("Drive/CMD/driveInMetersCmd")
     );
   } 
+
 }
