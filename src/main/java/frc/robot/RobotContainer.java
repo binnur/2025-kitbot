@@ -12,6 +12,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.robot.Constants.ElevatorConstants.ArmPosition;
 import frc.robot.Constants.ElevatorConstants.ElevatorPosition;
 import frc.robot.Constants.OperatorConstants;
 import frc.robot.commands.Autos;
@@ -120,9 +121,12 @@ public class RobotContainer {
           .onTrue(elevatorSubsystem.setTargetPositionCommand(ElevatorPosition.BOTTOM));
     new JoystickButton(operatorController, OperatorConstants.elevatorToCoralIntake)
           .onTrue(elevatorSubsystem.setTargetPositionCommand(ElevatorPosition.INTAKE));
+    new JoystickButton(operatorController, OperatorConstants.elevatorToL2)
+          .onTrue(elevatorSubsystem.setTargetPositionCommand(ElevatorPosition.CORAL_L2));
     new JoystickButton(operatorController, OperatorConstants.elevatorToTop)
-          .onTrue(elevatorSubsystem.setTargetPositionCommand(ElevatorPosition.TOP));
-    
+          .onTrue(elevatorSubsystem.setTargetPositionCommand(ElevatorPosition.TOP));    
+    new JoystickButton(operatorController, OperatorConstants.elevatorToL1)  // Hi-jacked to test HORIZONTAL ARM
+          .onTrue(elevatorSubsystem.setTargetPositionCommand(ElevatorPosition.CORAL_L1));  
   }
 
   // private void configDashboardEntries() {

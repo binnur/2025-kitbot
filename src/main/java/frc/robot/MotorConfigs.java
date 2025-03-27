@@ -139,7 +139,7 @@ public final class MotorConfigs {
                  .positionConversionFactor(liftPositionConversionFactor)
                  .velocityConversionFactor(liftVelocityConversionFactor / 60);      // RPS
 
-            // Configure closedLoop controls -- used with REVlib for control loop
+            // arm encoder is using default conversion factors measured in rotations
         }
     }
 }

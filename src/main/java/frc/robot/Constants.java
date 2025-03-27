@@ -81,11 +81,12 @@ public final class Constants {
     // Arm position are specified in degree of rotation
     // FIXME - review arm positions
     public static enum ArmPosition {
-      STOW(0),  
-      INTAKE(-Math.PI / 2.0 + Units.degreesToRadians(5)),
+      STOW(-Math.PI / 2.0),  // -180
+      HORIZONTAL(0),
+      FEEDER(Units.degreesToRadians(5)),
       L1(Units.degreesToRadians(55)), // reef angle
       L2(Units.degreesToRadians(55)),
-      TOP(Math.PI / 2.0);     
+      TOP(Math.PI / 2.0);    // + 180
 
       public final double value;
 
@@ -105,6 +106,9 @@ public final class Constants {
     public static final double MIN_HEIGHT_METERS = 0.005;
     public static final double MAX_HEIGHT_METERS = 1.57;
 
+    public static final double ARM_PIVOT_LIMIT = 0.3;   // FIXME - safe pivot movement for arm
+
+
     public static final double FREE_SPEED_VOLTAGE = 1; 
     public static final double MAX_VELOCITY_METERS_PER_SECOND = 1.3; 
     public static final double MAX_ACCELERATION_METERS_PER_SECOND_SQUARED = 3; 
@@ -116,10 +120,16 @@ public final class Constants {
     public static final DCMotor armGearbox = DCMotor.getNEO(1);
     public static final double armGearing = 40.0;    // FIXME:1
     public static final double armMassKg = Units.lbsToKilograms(10);
-    public static final double COM_DISTANCE_METERS = Units.inchesToMeters(6); // TODO
     public static final double armLengthInMeters = Units.inchesToMeters(6);
     public static final double MIN_ANGLE_RADIANS = -Math.PI / 2.0;
     public static final double MAX_ANGLE_RADIANS = Math.PI / 2.0;
+
+    // values from 2025-Ri3d
+    public static final double ARM_MAX_VELOCITY_METERS_PER_SECOND = 8; 
+    public static final double ARM_MAX_ACCELERATION_METERS_PER_SECOND_SQUARED = 4; 
+
+    public static final TrapezoidProfile.Constraints ARM_MOVEMENT_CONSTRAINTS = new TrapezoidProfile.Constraints(
+                ARM_MAX_VELOCITY_METERS_PER_SECOND, ARM_MAX_ACCELERATION_METERS_PER_SECOND_SQUARED); 
   }
 
   public static final class WpiElevatorLiftConfigs {
@@ -135,6 +145,18 @@ public final class Constants {
     public static final double TOLERANCE = 0.05;  // tolerance @ 5cm
   }
 
+  public static final class WpiElevatorArmConfigs {
+    // values from 2025-Ri3D
+    public static final double simkP = 10;
+    public static final double simkI = 0;
+    public static final double simkD = 0;
+    public static final double simkS = 0.017964;
+    public static final double simkG = 0.321192;
+    public static final double simkV = 0.876084;
+    public static final double simkA = 0.206676;
+    public static final double TOLERANCE = 0.02;    
+  }
+
   public static final class OperatorConstants {
     public static final int DRIVER_CONTROLLER_PORT = 0;
     public static final int OPERATOR_CONTROLLER_PORT = 1;
@@ -147,7 +169,6 @@ public final class Constants {
     public static final int elevatorToL1 = 6;
     public static final int elevatorToL2 = 7;
     public static final int elevatorToTop = 8;
-    public static final int resetLiftToBottomPosition = 9;
-    
+    public static final int resetLiftToBottomPosition = 9;    
   }
 }
