@@ -16,6 +16,7 @@ import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.simulation.ElevatorSim;
+import edu.wpi.first.wpilibj.simulation.SingleJointedArmSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Command.InterruptionBehavior;
@@ -23,6 +24,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Robot;
 import frc.robot.Constants.ElevatorConstants;
+import frc.robot.Constants.ElevatorConstants.ArmPosition;
 import frc.robot.Constants.ElevatorConstants.ElevatorPosition;
 import frc.robot.MotorConfigs.ElevatorSubsystemConfigs;
 import frc.robot.Constants.WpiElevatorLiftConfigs; 
@@ -52,11 +54,16 @@ public class WpiElevator extends SubsystemBase {
     @Logged(name="Lift LimitSwitch")
     DigitalInput bottomLiftLimitSwitch = new DigitalInput(ElevatorConstants.ELEVATOR_LIFT_BOTTOM_LIMIT_SWITCH);
 
-    /* Elevator consists of elevatorMotor for position & armMotor that pivots for coral placement */
+    /* Elevator consists of elevatorMotor for position & armMotor that pivots for coral placement 
+     *      - liftMotor moves the elevator to its set positions: intake, L1, L2, etc. -- linear movement
+     *      - armMotor picks and deliveres the coral, ex. pick from intake, and deliver to L1 -- angular movement
+     *  Note: Lift has two motors. Configuring them as a follower did not work (motor directions were fighting to each other). 
+     *        Instead, we are feeding these motors separately, and using liftMotor for PID positioning
+    */
     @Logged(name="Lift Motor")
     private final SparkMaxSendable liftMotor = new SparkMaxSendable(ElevatorConstants.ELEVATOR_LEADER_MOTOR_ID, MotorType.kBrushless);
     private final SparkMaxSendable liftFollowerMotor = new SparkMaxSendable(ElevatorConstants.ELEVATOR_FOLLOWER_MOTOR_ID, MotorType.kBrushless);
-    //@Logged(name="Arm Motor")
+    @Logged(name="Arm Motor")
     private final SparkMaxSendable armMotor = new SparkMaxSendable(ElevatorConstants.ELEVATOR_ARM_MOTOR_ID, MotorType.kBrushless);
 
     // setup closed loop controller
@@ -77,12 +84,19 @@ public class WpiElevator extends SubsystemBase {
     private final ElevatorIOInfo ioInfo = new ElevatorIOInfo();
     @Logged
     public static class ElevatorIOInfo {
+        // lift info
         public double liftAtPositionInMeters = 0.0;
         public double liftDesiredPositionInMeters = ElevatorPosition.BOTTOM.value;
         public double liftSimVelocityInMetersPerSec = 0.0;
         public double liftVelocityInMetersPerSec = 0.0;
         public double liftAppliedVolts = 0.0;
         public double liftCurrentAmps = 0.0;
+        // arm info
+        public double armAtPositionInRotations = 0.0;
+        public double armDesiredPositionInRotations = ArmPosition.STOW.value;
+        public double armVelocityInRotationsPerSec = 0.0;
+        public double armAppliedVolts = 0.0;
+        public double armCurrentAmps = 0.0;
     }
 
     /**
@@ -105,6 +119,21 @@ public class WpiElevator extends SubsystemBase {
     private DCMotor dcMotorLift = DCMotor.getNEO(2);
     private SparkMaxSim simDcMotorLift;
 
+    private DCMotor dcMotorArm = DCMotor.getNEO(1);
+    private SparkMaxSim simDcMotorArm;
+
+    private final SingleJointedArmSim armSim = new SingleJointedArmSim(
+            dcMotorArm,
+            ElevatorConstants.armGearing,
+            SingleJointedArmSim.estimateMOI(
+                ElevatorConstants.armLengthInMeters, ElevatorConstants.armMassKg),
+            ElevatorConstants.armLengthInMeters,
+            ElevatorConstants.MIN_ANGLE_RADIANS,
+            ElevatorConstants.MAX_ANGLE_RADIANS,
+            true,                       // simulate gravity
+            ArmPosition.STOW.value);     // initial position of arm in radius
+
+
     public WpiElevator() {
         // Apply configurations to the motors
         // kResetSafeParameters puts SPARKMAX to a known state (if sparkmax is replaced)
@@ -115,6 +144,7 @@ public class WpiElevator extends SubsystemBase {
 
         // construct simulation 
         simDcMotorLift = new SparkMaxSim(liftMotor, dcMotorLift);
+        simDcMotorArm = new SparkMaxSim(armMotor, dcMotorArm);
 
         // setup the elevator baseline
         moveToBottom();        // Reset elevator and arm position to its baseline
@@ -301,20 +331,29 @@ public class WpiElevator extends SubsystemBase {
      */ 
     public Command setTargetPositionCommand(ElevatorPosition level) {
         ElevatorPosition liftLevelTarget;
+        ArmPosition armPositionTarget;
 
          // TODO add arm position & command to setup arm
         switch (level) {
+            // Safely pivot arm to feeder station 
             case INTAKE:
                 liftLevelTarget = ElevatorPosition.INTAKE;
+                armPositionTarget = ArmPosition.INTAKE;
                 break;
+            // Arm positioned @ 180 degrees
             case TOP:
                 liftLevelTarget = ElevatorPosition.TOP;
+                armPositionTarget = ArmPosition.TOP;
                 break;
-            case CORAL_L1, CORAL_L2, BOTTOM:
-                liftLevelTarget = ElevatorPosition.BOTTOM;
+            // Safely pivot arm to required degrees
+            case CORAL_L1, CORAL_L2:        // Implement for CORAL_L1 level
+                liftLevelTarget = ElevatorPosition.CORAL_L2;
+                armPositionTarget = ArmPosition.L2;
                 break;
+            // @ start of the robot, elevator at the bottom & arm stowed -- reset encoders! 
             default: 
                 liftLevelTarget = ElevatorPosition.BOTTOM;
+                armPositionTarget = ArmPosition.STOW;
                 break;   
         }
 

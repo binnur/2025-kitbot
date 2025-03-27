@@ -78,6 +78,22 @@ public final class Constants {
       }
     }
 
+    // Arm position are specified in degree of rotation
+    // FIXME - review arm positions
+    public static enum ArmPosition {
+      STOW(0),  
+      INTAKE(-Math.PI / 2.0 + Units.degreesToRadians(5)),
+      L1(Units.degreesToRadians(55)), // reef angle
+      L2(Units.degreesToRadians(55)),
+      TOP(Math.PI / 2.0);     
+
+      public final double value;
+
+      private ArmPosition(double value) {
+          this.value = value;
+      }
+    }
+
     // Elevator mechanism for simulation
     public static final DCMotor gearbox = DCMotor.getNEO(2);
     public static final double gearing = 12.0;    // 12:1 gearing
@@ -95,7 +111,15 @@ public final class Constants {
 
     public static final TrapezoidProfile.Constraints MOVEMENT_CONSTRAINTS = new TrapezoidProfile.Constraints(
                 MAX_VELOCITY_METERS_PER_SECOND, MAX_ACCELERATION_METERS_PER_SECOND_SQUARED); 
-    
+
+    // Arm mechanism for simulation
+    public static final DCMotor armGearbox = DCMotor.getNEO(1);
+    public static final double armGearing = 40.0;    // FIXME:1
+    public static final double armMassKg = Units.lbsToKilograms(10);
+    public static final double COM_DISTANCE_METERS = Units.inchesToMeters(6); // TODO
+    public static final double armLengthInMeters = Units.inchesToMeters(6);
+    public static final double MIN_ANGLE_RADIANS = -Math.PI / 2.0;
+    public static final double MAX_ANGLE_RADIANS = Math.PI / 2.0;
   }
 
   public static final class WpiElevatorLiftConfigs {
