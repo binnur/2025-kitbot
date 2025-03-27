@@ -181,6 +181,7 @@ public class WpiElevator extends SubsystemBase {
      */
     private void resetEncoders() {
         liftMotor.getEncoder().setPosition(0.0);
+        armMotor.getEncoder().setPosition(0.0);
 
         if (Robot.isSimulation()) {
             simDcMotorLift.setPosition(0.0);
@@ -220,6 +221,7 @@ public class WpiElevator extends SubsystemBase {
      */
     public void moveToBottom() {
         ioInfo.liftDesiredPositionInMeters = ElevatorPosition.BOTTOM.value;
+        ioInfo.armDesiredPositionInRotations = ArmPosition.STOW.value;
 
         // drive elevator to bottom until limit switch is tripped
         moveToLimitSwitch();
