@@ -156,7 +156,12 @@ public class WpiElevator extends SubsystemBase {
         ioInfo.liftAppliedVolts = liftMotor.getAppliedOutput();
         ioInfo.liftCurrentAmps = liftMotor.getOutputCurrent();
         // note: ioInfo.liftDesiredPositionMeters updated with the operator control commands
-
+        ioInfo.armAtPositionInRotations = armMotor.getEncoder().getPosition();
+        // note: ioInfo.armDesiredPositionInRotations updated w/ operator commands
+        ioInfo.armVelocityInRotationsPerSec = armMotor.get();
+        ioInfo.armAppliedVolts = armMotor.getAppliedOutput();
+        ioInfo.armCurrentAmps = armMotor.getOutputCurrent();
+        
         if (Robot.isSimulation()) {
             ioInfo.liftSimVelocityInMetersPerSec = elevatorSim.getVelocityMetersPerSecond();
         }
