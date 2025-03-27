@@ -115,9 +115,10 @@ public final class MotorConfigs {
         public static final boolean motorArmInverted = false;
 
         // close loop controller conversion factors
-        public static final int encoderCountsPerRevolution = 42 * (int)ElevatorConstants.gearing;     // one rotation is 8192 ticks of the hardware encoder
-        public static final double liftPositionConversionFactor = ElevatorConstants.drumCircumferenceInMeters / encoderCountsPerRevolution;
-        public static final double liftVelocityConversionFactor = ElevatorConstants.drumCircumferenceInMeters / encoderCountsPerRevolution;     // RPM (per minute)
+        // 1 motor rotation * gearing translates to 1 rotation of the output shaft
+        public static final int motorRotationsPerOutput = 1 /*42*/ * (int)ElevatorConstants.gearing;     // 42 encoder ticks to a rotation is managed by the controller
+        public static final double liftPositionConversionFactor = ElevatorConstants.drumCircumferenceInMeters / motorRotationsPerOutput;
+        public static final double liftVelocityConversionFactor = ElevatorConstants.drumCircumferenceInMeters / motorRotationsPerOutput;     // RPM (per minute)
         
 
         static {
