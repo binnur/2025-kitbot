@@ -120,6 +120,8 @@ public final class MotorConfigs {
         public static final double liftPositionConversionFactor = ElevatorConstants.drumCircumferenceInMeters / motorRotationsPerOutput;
         public static final double liftVelocityConversionFactor = ElevatorConstants.drumCircumferenceInMeters / motorRotationsPerOutput;     // RPM (per minute)
         
+        public static final double armPositionConversionFactor = 2 * Math.PI / ElevatorConstants.armGearing;
+        public static final double armVelocityConversionFactor = 2 * Math.PI / ElevatorConstants.armGearing;
 
         static {
             globalConfig
@@ -138,6 +140,10 @@ public final class MotorConfigs {
             liftConfig.encoder
                  .positionConversionFactor(liftPositionConversionFactor)
                  .velocityConversionFactor(liftVelocityConversionFactor / 60);      // RPS
+
+            armConfig.encoder
+                .positionConversionFactor(armPositionConversionFactor)
+                .velocityConversionFactor(armVelocityConversionFactor / 60);        // RPS
 
             // arm encoder is using default conversion factors measured in rotations
         }

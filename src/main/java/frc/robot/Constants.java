@@ -79,14 +79,12 @@ public final class Constants {
     }
 
     // Arm position are specified in degree of rotation
-    // FIXME - review arm positions
+    // FIXME - review arm positions --> assuming to 0 to 180 
     public static enum ArmPosition {
-      STOW(-Math.PI / 2.0),  // -180
-      HORIZONTAL(0),
-      FEEDER(Units.degreesToRadians(5)),
-      L1(Units.degreesToRadians(55)), // reef angle
-      L2(Units.degreesToRadians(55)),
-      TOP(Math.PI / 2.0);    // + 180
+      STOW(0),        // 0 degree encoder reset @ robot start
+      FEED(Units.degreesToRadians(175)), // 180 degree
+      HORIZONTAL(Units.degreesToRadians(90)), // testing purposes
+      DELIVER(Units.degreesToRadians(35)); // L2 & L3 angle for coral delivery
 
       public final double value;
 
@@ -118,11 +116,11 @@ public final class Constants {
 
     // Arm mechanism for simulation
     public static final DCMotor armGearbox = DCMotor.getNEO(1);
-    public static final double armGearing = 40.0;    // FIXME:1
+    public static final double armGearing = 20.0;
     public static final double armMassKg = Units.lbsToKilograms(10);
     public static final double armLengthInMeters = Units.inchesToMeters(6);
-    public static final double MIN_ANGLE_RADIANS = -Math.PI / 2.0;
-    public static final double MAX_ANGLE_RADIANS = Math.PI / 2.0;
+    public static final double MIN_ANGLE_RADIANS = Units.degreesToRadians(0); // -2 * Math.PI / 2.0;
+    public static final double MAX_ANGLE_RADIANS = Units.degreesToRadians(190);// 2 * Math.PI / 2.0;
 
     // values from 2025-Ri3d
     public static final double ARM_MAX_VELOCITY_METERS_PER_SECOND = 8; 
@@ -147,9 +145,9 @@ public final class Constants {
 
   public static final class WpiElevatorArmConfigs {
     // values from 2025-Ri3D
-    public static final double simkP = 10;
+    public static final double simkP = 10.0;
     public static final double simkI = 0;
-    public static final double simkD = 0;
+    public static final double simkD = 0.0;
     public static final double simkS = 0.017964;
     public static final double simkG = 0.321192;
     public static final double simkV = 0.876084;

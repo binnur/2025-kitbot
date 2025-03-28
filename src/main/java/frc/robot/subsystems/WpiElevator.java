@@ -107,9 +107,9 @@ public class WpiElevator extends SubsystemBase {
         public double liftAppliedVolts = 0.0;
         public double liftCurrentAmps = 0.0;
         // arm info
-        public double armAtPositionInRotations = 0.0;
-        public double armDesiredPositionInRotations = ArmPosition.STOW.value;
-        public double armVelocityInRotationsPerSec = 0.0;
+        public double armAtPositionInRadians = 0.0;
+        public double armDesiredPositionInRadians = ArmPosition.STOW.value;
+        public double armVelocityInRotationsPerMin = 0.0;
         public double armAppliedVolts = 0.0;
         public double armCurrentAmps = 0.0;
     }
@@ -171,9 +171,9 @@ public class WpiElevator extends SubsystemBase {
         ioInfo.liftAppliedVolts = liftMotor.getAppliedOutput();
         ioInfo.liftCurrentAmps = liftMotor.getOutputCurrent();
         // note: ioInfo.liftDesiredPositionMeters updated with the operator control commands
-        ioInfo.armAtPositionInRotations = armMotor.getEncoder().getPosition();
-        // note: ioInfo.armDesiredPositionInRotations updated w/ operator commands
-        ioInfo.armVelocityInRotationsPerSec = armMotor.get();
+        ioInfo.armAtPositionInRadians = armMotor.getEncoder().getPosition();
+        // note: ioInfo.armDesiredPositionInRadians updated w/ operator commands
+        ioInfo.armVelocityInRotationsPerMin = armMotor.get();
         ioInfo.armAppliedVolts = armMotor.getAppliedOutput();
         ioInfo.armCurrentAmps = armMotor.getOutputCurrent();
         
@@ -200,6 +200,7 @@ public class WpiElevator extends SubsystemBase {
 
         if (Robot.isSimulation()) {
             simDcMotorLift.setPosition(0.0);
+            simDcMotorArm.setPosition(0.0);
         }
     }
 
@@ -229,12 +230,20 @@ public class WpiElevator extends SubsystemBase {
         armSim.setInput(armMotor.getAppliedOutput() * RobotController.getBatteryVoltage());
         armSim.update(0.020);
 
+        // simDcMotorArm.iterate(
+        //         Units.radiansPerSecondToRotationsPerMinute(
+        //             armSim.getVelocityRadPerSec() * ElevatorConstants.armGearing
+        //         ), 
+        //         RobotController.getBatteryVoltage(),
+        //         0.020);    
+
         simDcMotorArm.iterate(
-                Units.radiansPerSecondToRotationsPerMinute(
-                    armSim.getVelocityRadPerSec() * ElevatorConstants.armGearing
-                ), 
+                armSim.getVelocityRadPerSec(),
                 RobotController.getBatteryVoltage(),
                 0.020);    
+
+        // note: .iterate should reset encoder position, but this seem to simulate better
+        armMotor.getEncoder().setPosition(armSim.getAngleRads());
 
         updateElevatorIOInfo();
     }
@@ -245,17 +254,17 @@ public class WpiElevator extends SubsystemBase {
      */
     public void moveToBottom() {
         ioInfo.liftDesiredPositionInMeters = ElevatorPosition.BOTTOM.value;
-        ioInfo.armDesiredPositionInRotations = ArmPosition.STOW.value;
+        ioInfo.armDesiredPositionInRadians = ArmPosition.STOW.value;
 
         // drive elevator to bottom until limit switch is tripped
         moveToLimitSwitch();
         resetEncoders();
 
         // initialize the PID controller to goal position of BOTTOM
-        liftPidController.reset(getLiftPosition());
-        liftPidController.setGoal(ElevatorPosition.BOTTOM.value);
-        armPidController.reset(getLiftPosition());
-        armPidController.setGoal(ArmPosition.STOW.value);
+        // liftPidController.reset(getLiftPosition());
+        // liftPidController.setGoal(ElevatorPosition.BOTTOM.value);
+        // armPidController.reset(getLiftPosition());
+        // armPidController.setGoal(ArmPosition.STOW.value);
     }
 
     /**
@@ -290,11 +299,11 @@ public class WpiElevator extends SubsystemBase {
         voltage = MathUtil.clamp(voltage, -12, 12);
 
         // ensure arm can be safely pivoted, i.e. moved
-        if (voltage < 0
-                && getArmPosition() < 0
-                && getLiftPosition() < ElevatorConstants.ARM_PIVOT_LIMIT) {
-            voltage = 0;
-        }
+        // if (voltage < 0
+        //         && getArmPosition() < 0
+        //         && getLiftPosition() < ElevatorConstants.ARM_PIVOT_LIMIT) {
+        //     voltage = 0;
+        // }
 
         armMotor.setVoltage(voltage);
     }
@@ -326,6 +335,7 @@ public class WpiElevator extends SubsystemBase {
 
             setLiftVoltage(liftFeedbackVoltage+liftFeedforwardVoltage);
             setArmVoltage(armFeedbackVoltage+armFeedforwardVoltage);
+            //setArmVoltage(12.0);
         }).withName("elevator.moveToCurrentGoal");
     }
 
@@ -342,7 +352,6 @@ public class WpiElevator extends SubsystemBase {
 
     /*
      * Returns if target goal is reached within tolerance specified
-     * TODO: check if triggered limit switch, i.e. moving passed min elevator position
      */
     public boolean liftAtGoal() {
         return liftPidController.atGoal();
@@ -355,12 +364,11 @@ public class WpiElevator extends SubsystemBase {
     /**
      * Creates a command that sets target setpoints for the elevator & arm. 
      * Command is cancelled once the mechanism has reached that goal.
-     * TODO: add arm controls
      */
     public Command moveToPositionCommand(Supplier<ElevatorPosition> liftPositionSupplier,
                                          Supplier<ArmPosition> armPositionSupplier) {
         ioInfo.liftDesiredPositionInMeters = liftPositionSupplier.get().value;
-        ioInfo.armDesiredPositionInRotations = armPositionSupplier.get().value;
+        ioInfo.armDesiredPositionInRadians = armPositionSupplier.get().value;
 
         // stop current motion and clear integral values
         // specify the new goal position to the PID controllers 
@@ -373,7 +381,7 @@ public class WpiElevator extends SubsystemBase {
         // run the motors until target goal is reached
         return Commands.sequence(
                             moveToSetPointCommand()
-                                .until( () -> liftAtGoal() && armAtGoal() || didTriggerLiftLimitSwitch() ) 
+                                .until( () -> /*liftAtGoal() && */ armAtGoal() || didTriggerLiftLimitSwitch() ) 
                         )
                         .withTimeout(3)
                         .withName("elevator.moveToPosition");
@@ -395,17 +403,16 @@ public class WpiElevator extends SubsystemBase {
         ElevatorPosition liftLevelTarget;
         ArmPosition armPositionTarget;
 
-         // TODO add arm position & command to setup arm
         switch (level) {
-            // Safely pivot arm to feeder station 
+            // Note: need to safely pivot arm to feeder station 
             case INTAKE:
                 liftLevelTarget = ElevatorPosition.INTAKE;
-                armPositionTarget = ArmPosition.FEEDER;
+                armPositionTarget = ArmPosition.FEED;
                 break;
             // Arm positioned @ 180 degrees
             case TOP:
                 liftLevelTarget = ElevatorPosition.TOP;
-                armPositionTarget = ArmPosition.TOP;
+                armPositionTarget = ArmPosition.FEED;
                 break;
             // Safely pivot arm to required degrees
             case CORAL_L1:       // Hijacked to test horizontal arm
@@ -414,7 +421,7 @@ public class WpiElevator extends SubsystemBase {
                 break;
             case CORAL_L2:       
                 liftLevelTarget = ElevatorPosition.CORAL_L2;
-                armPositionTarget = ArmPosition.L2;
+                armPositionTarget = ArmPosition.DELIVER;
                 break;
             // @ start of the robot, elevator at the bottom & arm stowed -- reset encoders! 
             default: 
@@ -443,7 +450,7 @@ public class WpiElevator extends SubsystemBase {
     }
 
     /**
-     * TODO test this behavior
+     * Note: need to test this behavior
      */
     public Command coastMotorsThenBreakCommand() {
         return runOnce(liftMotor::stopMotor)
